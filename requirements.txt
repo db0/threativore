@@ -1,0 +1,13 @@
+pythorhead>=0.20.0
+loguru
+python-dotenv
+SQLAlchemy
+psycopg2-binary
+werkzeug
+Flask
+flask-restx
+flask_limiter
+Flask-Caching
+waitress
+flask_sqlalchemy
+regex
