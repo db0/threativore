@@ -10,8 +10,8 @@ from threagetarian.orm.user import User
 
 
 class ThreagetarianUsers:
-    def __init__(self, lemmy):
-        self.lemmy = lemmy
+    def __init__(self, threagetarian):
+        self.threagetarian = threagetarian
 
     def ensure_user_exists_with_role(self, user_url: str, role: UserRoleTypes):
         user = database.get_user(user_url)
@@ -79,7 +79,7 @@ class ThreagetarianUsers:
                 user_url=user_url,
                 role=user_role,
             )
-            self.reply_to_pm(
+            self.threagetarian.reply_to_pm(
                 pm=pm,
                 message=(f"Role {user_role.name} has been succesfully added to {user_url} "),
             )

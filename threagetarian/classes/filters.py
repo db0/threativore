@@ -11,8 +11,8 @@ from threagetarian.orm.filters import Filter
 
 
 class ThreagetarianFilters:
-    def __init__(self, lemmy):
-        self.lemmy = lemmy
+    def __init__(self, threagetarian):
+        self.threagetarian = threagetarian
 
     def add_filter(
         self,
@@ -126,7 +126,7 @@ class ThreagetarianFilters:
                     filter_type=filter_type,
                     description=filter_description,
                 )
-                self.reply_to_pm(
+                self.threagetarian.reply_to_pm(
                     pm=pm,
                     message=(
                         f"New Filter has been succesfully added:\n\n\n"
@@ -152,7 +152,7 @@ class ThreagetarianFilters:
                     filter_type=filter_type,
                     description=filter_description,
                 )
-                self.reply_to_pm(
+                self.threagetarian.reply_to_pm(
                     pm=pm,
                     message=(
                         f"Filter has been succesfully modified:\n\n\n"
@@ -166,7 +166,7 @@ class ThreagetarianFilters:
                 )
         if filter_method == "remove":
             self.remove_filter(filter=filter_regex)
-            self.reply_to_pm(
+            self.threagetarian.reply_to_pm(
                 pm=pm,
                 message=(f"Filter has been succesfully remmoved:\n\n\n" "---\n" f"* regex: `{filter_regex}`"),
             )
@@ -182,7 +182,7 @@ class ThreagetarianFilters:
                     f"* description: {ffilter.description}"
                 )
 
-            self.reply_to_pm(
+            self.threagetarian.reply_to_pm(
                 pm=pm,
                 message=(f"Here are all the available {filter_type.name} filters containing `{filter_regex}`:\n\n\n{filters_string}"),
             )
@@ -197,10 +197,10 @@ class ThreagetarianFilters:
         filter_type = FilterType[filter_search.group(1).upper()]
         all_filters = [(f.regex) for f in database.get_all_filters(FilterType.COMMENT)]
         if len(all_filters) == 0:
-            self.reply_to_pm(pm=pm, message=f"There are currently no {filter_type.name} defined.")
+            self.threagetarian.reply_to_pm(pm=pm, message=f"There are currently no {filter_type.name} defined.")
             return
         joined_filters = "`\n* `".join(all_filters)
-        self.reply_to_pm(
+        self.threagetarian.reply_to_pm(
             pm=pm,
             message=(f"Here are all the available {filter_type.name} filter regexp:\n\n\n" "---\n" f"* `{joined_filters}`"),
         )

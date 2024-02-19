@@ -19,8 +19,8 @@ from threagetarian.orm.user import User
 class Threagetarian:
     def __init__(self, _base_lemmy):
         self.lemmy = _base_lemmy.lemmy
-        self.filters = ThreagetarianFilters(self.lemmy)
-        self.users = ThreagetarianUsers(self.lemmy)
+        self.filters = ThreagetarianFilters(self)
+        self.users = ThreagetarianUsers(self)
         self.ensure_admin_exists()
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -40,6 +40,7 @@ class Threagetarian:
             admin.add_role(UserRoleTypes.ADMIN)
 
     def resolve_reports(self):
+        logger.debug("Checking Reports...")
         self.resolve_post_reports()
         self.resolve_comment_reports()
 
@@ -186,6 +187,7 @@ class Threagetarian:
             db.session.commit()
 
     def check_comments(self):
+        logger.debug("Checking Comments...")
         cm = self.lemmy.comment.list(limit=50)
         # logger.info(json.dumps(cm, indent=4))
         comment_filters = database.get_all_filters(FilterType.COMMENT)
@@ -249,6 +251,13 @@ class Threagetarian:
                             #     reason=f"Threagetarian automatic ban from post: {tfilter.reason}"
                             # )
                             entity_banned = True
+                            # BETA TESTING ONLY
+                            self.lemmy.comment.report(
+                                comment_id=comment_id,
+                                reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                            )
+                            entity_reported = True
+
             seen_comment = Seen(
                 entity_id=comment_id,
                 entity_type=EntityType.COMMENT,
@@ -257,6 +266,7 @@ class Threagetarian:
             db.session.commit()
 
     def check_posts(self):
+        logger.debug("Checking Posts...")
         cm = self.lemmy.post.list(limit=50)
         # logger.info(json.dumps(cm, indent=4))
         comment_filters = database.get_all_filters(FilterType.COMMENT)
@@ -335,6 +345,13 @@ class Threagetarian:
                             #     reason=f"Threagetarian automatic ban from report: {tfilter.reason}"
                             # )
                             entity_banned = True
+                            # BETA TESTING ONLY
+                            self.lemmy.post.report(
+                                comment_id=post_id,
+                                reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                            )
+                            entity_reported = True
+
             seen_post = Seen(
                 entity_id=post_id,
                 entity_type=EntityType.POST,
@@ -343,6 +360,7 @@ class Threagetarian:
             db.session.commit()
 
     def check_pms(self):
+        logger.debug("Checking PMs...")
         pms = self.lemmy.private_message.list(
             unread_only=True,
             limit=20,
