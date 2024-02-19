@@ -68,7 +68,7 @@ class ThreagetarianFilters:
         user = database.get_user(user_url)
         if not user:
             raise e.ThreagetarianException(f"{user_url} not known")
-        if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
+        if not user.can_do_filters():
             raise e.ThreagetarianException(f"{user_url} doesn't have enough privileges to modify filters")
         existing_filter = database.get_filter(existing_filter_regex)
         if not existing_filter:
@@ -91,10 +91,13 @@ class ThreagetarianFilters:
         logger.info([(f.regex, f.reason) for f in database.get_all_filters(FilterType.REPORT)])
 
     def parse_filter_pm(self, filter_search, pm):
-        requesting_user = database.get_user(pm["creator"]["actor_id"])
+        user_url = pm["creator"]["actor_id"].lower()
+        requesting_user = database.get_user(user_url)
         if not requesting_user:
+            logger.debug(user_url)
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         if not requesting_user.can_do_filters():
+            logger.debug(requesting_user.roles)
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         # logger.info(pm['private_message']['content'])
         filter_type = FilterType[filter_search.group(2).upper()]
@@ -107,7 +110,7 @@ class ThreagetarianFilters:
             if filter_description_search:
                 filter_description = filter_description_search.group(1).strip()
             fa_values = "|".join([e.name for e in FilterAction])
-            filter_action_search = re.search(rf"action: ?({fa_values})?", pm["private_message"]["content"], re.IGNORECASE)
+            filter_action_search = re.search(rf"action: ?({fa_values})", pm["private_message"]["content"], re.IGNORECASE)
             filter_action = None
             if filter_action_search:
                 filter_action = FilterAction[filter_action_search.group(1).upper()]
@@ -120,7 +123,7 @@ class ThreagetarianFilters:
                 # logger.info([filter_type,filter_regex,filter_reason,filter_description,filter_action])
                 self.add_filter(
                     filter=filter_regex,
-                    user_url=pm["creator"]["actor_id"],
+                    user_url=user_url,
                     reason=filter_reason,
                     filter_action=filter_action,
                     filter_type=filter_type,
@@ -146,7 +149,7 @@ class ThreagetarianFilters:
                 modified_filter = self.modify_filter(
                     existing_filter_regex=filter_regex,
                     new_filter_regex=mew_filter,
-                    user_url=pm["creator"]["actor_id"],
+                    user_url=user_url,
                     reason=filter_reason,
                     filter_action=filter_action,
                     filter_type=filter_type,
