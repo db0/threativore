@@ -1,5 +1,5 @@
 from threagetarian.enums import EntityType, FilterType
-from threagetarian.orm.filters import Filter
+from threagetarian.orm.filters import Filter, FilterMatch
 from threagetarian.orm.seen import Seen
 from threagetarian.orm.user import User
 
@@ -44,3 +44,6 @@ def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
         ).count()
         >= 1
     )
+
+def filter_match_exists(entity_id: int) -> bool:
+    return FilterMatch.query.filter_by(entity_id=entity_id).count() == 1

@@ -77,7 +77,7 @@ class Threagetarian:
                             reason=f"Threagetarian automatic comment removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        try:
+                        if not database.filter_match_exists(report["comment"]["id"]):
                             new_match = FilterMatch(
                                 actor_id=report["comment_creator"]["actor_id"],
                                 entity_id=report["comment"]["id"],
@@ -87,8 +87,6 @@ class Threagetarian:
                             )
                             db.session.add(new_match)
                             db.session.commit()
-                        except Exception as err:
-                            logger.error(f"Error when commiting comment report FilterMatch: {err}")
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
@@ -160,7 +158,7 @@ class Threagetarian:
                             reason=f"Threagetarian automatic post removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        try:
+                        if not database.filter_match_exists(report["post"]["id"]):
                             new_match = FilterMatch(
                                 actor_id=report["post_creator"]["actor_id"],
                                 entity_id=report["post"]["id"],
@@ -170,8 +168,6 @@ class Threagetarian:
                             )
                             db.session.add(new_match)
                             db.session.commit()
-                        except Exception as err:
-                            logger.error(f"Error when commiting post FilterMatch: {err}")
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
@@ -239,7 +235,7 @@ class Threagetarian:
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
                     # Comments
-                    try:
+                    if not database.filter_match_exists(comment_id):
                         new_match = FilterMatch(
                             actor_id=comment["creator"]["actor_id"],
                             entity_id=comment_id,
@@ -248,8 +244,6 @@ class Threagetarian:
                         )
                         db.session.add(new_match)
                         db.session.commit()
-                    except Exception as err:
-                        logger.error(f"Error when commiting comment FilterMatch: {err}")
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.comment.report(
                             comment_id=comment_id,
@@ -352,7 +346,7 @@ class Threagetarian:
                 # logger.info([comment["comment"]["content"], f.regex])
                 if matched_filter:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
-                    try:
+                    if not database.filter_match_exists(post_id):
                         new_match = FilterMatch(
                             actor_id=post["creator"]["actor_id"],
                             entity_id=post_id,
@@ -361,8 +355,6 @@ class Threagetarian:
                         )
                         db.session.add(new_match)
                         db.session.commit()
-                    except Exception as err:
-                        logger.error(f"Error when commiting post FilterMatch: {err}")
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.post.report(
                             post_id=post_id,
