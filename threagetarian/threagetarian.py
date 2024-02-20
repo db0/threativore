@@ -320,7 +320,6 @@ class Threagetarian:
             post_id: int = post["post"]["id"]
             if database.has_been_seen(post_id, EntityType.POST):
                 continue
-
             entity_removed = False
             entity_reported = False
             entity_banned = False
@@ -332,12 +331,12 @@ class Threagetarian:
                 matched_filter = False
                 if tfilter.filter_type == FilterType.COMMENT:
                     filter_match = re.search(tfilter.regex, post["post"]["name"], re.IGNORECASE)
-                    if matched_filter:
+                    if filter_match:
                         matched_filter = True
                         matching_string = f'post title: {post["post"]["name"]}'
                     elif "body" in post["post"]:
                         filter_match = re.search(tfilter.regex, post["post"]["body"], re.IGNORECASE)
-                        if matched_filter:
+                        if filter_match:
                             matched_filter = True
                             matching_string = f'post body: {post["post"]["body"]}'
                 if "url" in post["post"] and tfilter.filter_type == FilterType.URL:
@@ -366,7 +365,7 @@ class Threagetarian:
                         logger.error(f"Error when commiting post FilterMatch: {err}")
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.post.report(
-                            comment_id=post_id,
+                            post_id=post_id,
                             reason=f"Threagetarian automatic post report: {tfilter.reason}",
                         )
                         entity_reported = True
@@ -374,12 +373,12 @@ class Threagetarian:
                         # BETA TESTING ONLY
                         logger.warning("Would remove post")
                         self.lemmy.post.report(
-                            comment_id=post_id,
+                            post_id=post_id,
                             reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
                         )
                         entity_reported = True
                         # self.lemmy.comment.remove(
-                        #     comment_id=post_id,
+                        #     post_id=post_id,
                         #     removed=True,
                         #     reason=f"Threagetarian automatic post removal: {tfilter.reason}",
                         # )
