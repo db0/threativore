@@ -146,6 +146,9 @@ class ThreagetarianFilters:
                 mew_filter = None
                 if mew_filter_search:
                     mew_filter = mew_filter_search.group(1).strip()
+                filter_reason = None
+                if filter_reason_search:
+                    filter_reason = filter_reason_search.group(1).strip()
                 modified_filter = self.modify_filter(
                     existing_filter_regex=filter_regex,
                     new_filter_regex=mew_filter,

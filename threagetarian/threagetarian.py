@@ -14,6 +14,7 @@ from threagetarian.flask import APP, db
 from threagetarian.orm.filters import FilterMatch
 from threagetarian.orm.seen import Seen
 from threagetarian.orm.user import User
+from pythorhead.types.sort import CommentSortType
 
 
 class Threagetarian:
@@ -76,15 +77,18 @@ class Threagetarian:
                             reason=f"Threagetarian automatic comment removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        new_match = FilterMatch(
-                            actor_id=report["comment_creator"]["actor_id"],
-                            entity_id=report["comment"]["id"],
-                            report_id=report_id,
-                            url=report["comment"]["ap_id"],
-                            filter_id=tfilter.id,
-                        )
-                        db.session.add(new_match)
-                        db.session.commit()
+                        try:
+                            new_match = FilterMatch(
+                                actor_id=report["comment_creator"]["actor_id"],
+                                entity_id=report["comment"]["id"],
+                                report_id=report_id,
+                                url=report["comment"]["ap_id"],
+                                filter_id=tfilter.id,
+                            )
+                            db.session.add(new_match)
+                            db.session.commit()
+                        except Exception as err:
+                            logger.error(f"Error when commiting comment report FilterMatch: {err}")
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
@@ -103,6 +107,7 @@ class Threagetarian:
             seen_report = Seen(
                 entity_id=report_id,
                 entity_type=EntityType.REPORT,
+                entity_url=report["comment"]["ap_id"],
             )
             db.session.add(seen_report)
             db.session.commit()
@@ -155,15 +160,18 @@ class Threagetarian:
                             reason=f"Threagetarian automatic post removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        new_match = FilterMatch(
-                            actor_id=report["post_creator"]["actor_id"],
-                            entity_id=report["post"]["id"],
-                            report_id=report_id,
-                            url=report["post"]["ap_id"],
-                            filter_id=tfilter.id,
-                        )
-                        db.session.add(new_match)
-                        db.session.commit()
+                        try:
+                            new_match = FilterMatch(
+                                actor_id=report["post_creator"]["actor_id"],
+                                entity_id=report["post"]["id"],
+                                report_id=report_id,
+                                url=report["post"]["ap_id"],
+                                filter_id=tfilter.id,
+                            )
+                            db.session.add(new_match)
+                            db.session.commit()
+                        except Exception as err:
+                            logger.error(f"Error when commiting post FilterMatch: {err}")
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
@@ -182,13 +190,27 @@ class Threagetarian:
             seen_report = Seen(
                 entity_id=report_id,
                 entity_type=EntityType.REPORT,
+                entity_url=report["post"]["ap_id"],
             )
             db.session.add(seen_report)
             db.session.commit()
 
     def check_comments(self):
-        logger.debug("Checking Comments...")
-        cm = self.lemmy.comment.list(limit=50)
+        seen_page_previously = False
+        page = 1
+        all_ids_checked_this_run = []
+        while not seen_page_previously and page <= 10:
+            seen_page_previously, ids_checked = self.check_comments_page(page, all_ids_checked_this_run)
+            page += 1
+            all_ids_checked_this_run += ids_checked
+        
+
+    def check_comments_page(self, page:int=1, ids_checked_already: list[int] = []):
+        logger.debug(f"Checking Comments page {page}...")
+        cm = self.lemmy.comment.list(limit=50,sort=CommentSortType.New, page=page)
+        all_ids = [comment["comment"]["id"] for comment in cm if comment["comment"]["id"] not in ids_checked_already]
+        seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.COMMENT)
+        # logger.debug([seen_any_previously, len(all_ids)])
         # logger.info(json.dumps(cm, indent=4))
         comment_filters = database.get_all_filters(FilterType.COMMENT)
         username_filters = database.get_all_filters(FilterType.USERNAME)
@@ -198,6 +220,8 @@ class Threagetarian:
             entity_reported = False
             entity_banned = False
             comment_id: int = comment["comment"]["id"]
+            if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/Flatworm7591":
+                logger.debug(comment["comment"]["content"])
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
             for tfilter in sorted_filters:
@@ -215,15 +239,17 @@ class Threagetarian:
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
                     # Comments
-                    new_match = FilterMatch(
-                        actor_id=comment["creator"]["actor_id"],
-                        entity_id=comment_id,
-                        url=comment["comment"]["ap_id"],
-                        filter_id=tfilter.id,
-                    )
-                    db.session.add(new_match)
-                    db.session.commit()
-                    logger.warning("Would remove comment")
+                    try:
+                        new_match = FilterMatch(
+                            actor_id=comment["creator"]["actor_id"],
+                            entity_id=comment_id,
+                            url=comment["comment"]["ap_id"],
+                            filter_id=tfilter.id,
+                        )
+                        db.session.add(new_match)
+                        db.session.commit()
+                    except Exception as err:
+                        logger.error(f"Error when commiting comment FilterMatch: {err}")
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.comment.report(
                             comment_id=comment_id,
@@ -231,6 +257,15 @@ class Threagetarian:
                         )
                         entity_reported = True
                     else:
+                        # BETA TESTING ONLY
+                        logger.warning("Would remove comment")
+                        logger.debug(f"Reported {comment_id}")
+                        self.lemmy.comment.report(
+                            comment_id=comment_id,
+                            reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                        )
+                        entity_reported = True
+
                         # self.lemmy.comment.remove(
                         #     comment_id=comment_id,
                         #     removed=True,
@@ -251,23 +286,31 @@ class Threagetarian:
                             #     reason=f"Threagetarian automatic ban from post: {tfilter.reason}"
                             # )
                             entity_banned = True
-                            # BETA TESTING ONLY
-                            self.lemmy.comment.report(
-                                comment_id=comment_id,
-                                reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
-                            )
-                            entity_reported = True
-
             seen_comment = Seen(
                 entity_id=comment_id,
                 entity_type=EntityType.COMMENT,
+                entity_url=comment["comment"]["ap_id"],
             )
             db.session.add(seen_comment)
             db.session.commit()
+        return (seen_any_previously,all_ids)
+
 
     def check_posts(self):
-        logger.debug("Checking Posts...")
-        cm = self.lemmy.post.list(limit=50)
+        seen_page_previously = False
+        page = 1
+        all_ids_checked_this_run = []
+        while not seen_page_previously and page <= 10:
+            seen_page_previously, ids_checked = self.check_posts_page(page, all_ids_checked_this_run)
+            page += 1
+            all_ids_checked_this_run += ids_checked
+
+    def check_posts_page(self, page:int=1, ids_checked_already: list[int] = []):
+        logger.debug(f"Checking Posts page {page}...")
+        cm = self.lemmy.post.list(limit=10,sort=CommentSortType.New, page=page)
+        all_ids = [post["post"]["id"] for post in cm if post["post"]["id"] not in ids_checked_already]
+        seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.POST)
+        # logger.debug([seen_any_previously, len(all_ids)])
         # logger.info(json.dumps(cm, indent=4))
         comment_filters = database.get_all_filters(FilterType.COMMENT)
         url_filters = database.get_all_filters(FilterType.URL)
@@ -277,6 +320,7 @@ class Threagetarian:
             post_id: int = post["post"]["id"]
             if database.has_been_seen(post_id, EntityType.POST):
                 continue
+
             entity_removed = False
             entity_reported = False
             entity_banned = False
@@ -309,14 +353,17 @@ class Threagetarian:
                 # logger.info([comment["comment"]["content"], f.regex])
                 if matched_filter:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
-                    new_match = FilterMatch(
-                        actor_id=post["creator"]["actor_id"],
-                        entity_id=post_id,
-                        url=post["post"]["ap_id"],
-                        filter_id=tfilter.id,
-                    )
-                    db.session.add(new_match)
-                    db.session.commit()
+                    try:
+                        new_match = FilterMatch(
+                            actor_id=post["creator"]["actor_id"],
+                            entity_id=post_id,
+                            url=post["post"]["ap_id"],
+                            filter_id=tfilter.id,
+                        )
+                        db.session.add(new_match)
+                        db.session.commit()
+                    except Exception as err:
+                        logger.error(f"Error when commiting post FilterMatch: {err}")
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.post.report(
                             comment_id=post_id,
@@ -324,7 +371,13 @@ class Threagetarian:
                         )
                         entity_reported = True
                     else:
+                        # BETA TESTING ONLY
                         logger.warning("Would remove post")
+                        self.lemmy.post.report(
+                            comment_id=post_id,
+                            reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                        )
+                        entity_reported = True
                         # self.lemmy.comment.remove(
                         #     comment_id=post_id,
                         #     removed=True,
@@ -345,19 +398,15 @@ class Threagetarian:
                             #     reason=f"Threagetarian automatic ban from report: {tfilter.reason}"
                             # )
                             entity_banned = True
-                            # BETA TESTING ONLY
-                            self.lemmy.post.report(
-                                comment_id=post_id,
-                                reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
-                            )
-                            entity_reported = True
 
             seen_post = Seen(
                 entity_id=post_id,
                 entity_type=EntityType.POST,
+                entity_url=post["post"]["ap_id"],
             )
             db.session.add(seen_post)
             db.session.commit()
+        return (seen_any_previously,all_ids)
 
     def check_pms(self):
         logger.debug("Checking PMs...")
@@ -375,7 +424,7 @@ class Threagetarian:
                 continue
             try:
                 filter_search = re.search(
-                    r"(add|remove|show) (report|comment) filter: ?`(.+?)`[ \n]*?",
+                    r"(add|remove|show|modify) (report|comment) filter: ?`(.+?)`[ \n]*?",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )

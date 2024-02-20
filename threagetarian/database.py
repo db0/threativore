@@ -35,3 +35,12 @@ def has_been_seen(entity_id: int, entity_type: EntityType):
         ).count()
         == 1
     )
+
+def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
+    return (
+        Seen.query.filter(
+            Seen.entity_id.in_(entity_ids),
+            Seen.entity_type == entity_type,
+        ).count()
+        >= 1
+    )

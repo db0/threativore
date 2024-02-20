@@ -13,6 +13,7 @@ class Seen(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     entity_id = db.Column(db.Integer, unique=False, nullable=False, index=True)
     entity_type = db.Column(Enum(EntityType), nullable=False, index=True)
+    entity_url = db.Column(db.Text, nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
