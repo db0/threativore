@@ -2,8 +2,8 @@ from datetime import datetime
 
 from sqlalchemy import Enum, UniqueConstraint, event
 
-from threagetarian.enums import EntityType
-from threagetarian.flask import db
+from threativore.enums import EntityType
+from threativore.flask import db
 
 
 class Seen(db.Model):

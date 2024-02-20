@@ -1,5 +1,5 @@
 [project]
-name = "Threagetarian"
+name = "Threativore"
 version = "0.1.0"
 description = "A Threadiverse anti-spam and admin bot."
 authors = [
@@ -23,8 +23,8 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/db0/threagetarian"
-"Bug Tracker" = "https://github.com/db0/threagetarian/issues"
+"Homepage" = "https://github.com/db0/threativore"
+"Bug Tracker" = "https://github.com/db0/threativore/issues"
 
 [tool.ruff]
 line-length = 140

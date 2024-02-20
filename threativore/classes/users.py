@@ -1,17 +1,17 @@
 import regex as re
 from loguru import logger
 
-import threagetarian.database as database
-import threagetarian.exceptions as e
-import threagetarian.utils as utils
-from threagetarian.enums import UserRoleTypes
-from threagetarian.flask import db
-from threagetarian.orm.user import User
+import threativore.database as database
+import threativore.exceptions as e
+import threativore.utils as utils
+from threativore.enums import UserRoleTypes
+from threativore.flask import db
+from threativore.orm.user import User
 
 
-class ThreagetarianUsers:
-    def __init__(self, threagetarian):
-        self.threagetarian = threagetarian
+class ThreativoreUsers:
+    def __init__(self, threativore):
+        self.threativore = threativore
 
     def ensure_user_exists_with_role(self, user_url: str, role: UserRoleTypes):
         user = database.get_user(user_url)
@@ -79,7 +79,7 @@ class ThreagetarianUsers:
                 user_url=user_url,
                 role=user_role,
             )
-            self.threagetarian.reply_to_pm(
+            self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Role {user_role.name} has been succesfully added to {user_url} "),
             )

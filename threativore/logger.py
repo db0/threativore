@@ -3,7 +3,7 @@ from functools import partialmethod
 
 from loguru import logger
 
-from threagetarian.argparser import args
+from threativore.argparser import args
 
 STDOUT_LEVELS = ["GENERATION", "PROMPT"]
 INIT_LEVELS = ["INIT", "INIT_OK", "INIT_WARN", "INIT_ERR"]
@@ -137,7 +137,7 @@ config = {
     ],
 }
 logger.configure(**config)
-logger.add("threagetarian.log", retention="7 days", rotation="1d", compression="bz2", level=19)
+logger.add("threativore.log", retention="7 days", rotation="1d", compression="bz2", level=19)
 logger.disable("__main__")
 logger.warning("disabled")
 logger.enable("")

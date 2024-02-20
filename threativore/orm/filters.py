@@ -2,8 +2,8 @@ from datetime import datetime
 
 from sqlalchemy import Enum, event
 
-from threagetarian.enums import FilterAction, FilterType
-from threagetarian.flask import db
+from threativore.enums import FilterAction, FilterType
+from threativore.flask import db
 
 
 class FilterMatch(db.Model):

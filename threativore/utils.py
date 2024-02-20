@@ -3,7 +3,7 @@ import uuid
 
 import regex as re
 
-from threagetarian.flask import SQLITE_MODE
+from threativore.flask import SQLITE_MODE
 
 random.seed(random.SystemRandom().randint(0, 2**32 - 1))
 

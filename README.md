@@ -1,13 +1,15 @@
-# threagetarian
+# Threativore
 
-A Thrediverse bot to fight against spam and help with moderation
+A Fediverse/Threadiverse bot to fight against spam and help with moderation
+
+The name is a portmanteau of Threats + Vore. I.e. this is a tool that eats threats.
 
 # Setup
 
 * git clone
 * `python -m pip install -r requirements.txt`
 * Copy `.env_template` into `.env` and modify its contents according to the comments
-
+* `python run.py`
 
 # Use
 
@@ -24,7 +26,7 @@ The bot uses regexp filters to catch easily detectable spam comments as defined 
 Send the PM in the following markdown format
 
 ```
-threagetarian add comment filter: `trial period`
+threativore add comment filter: `trial period`
 reason: `Spam comment`
 action: `REMOVE`
 description: `Known spam string`
@@ -47,8 +49,8 @@ The various fields are:
 * description: internal description for the filter to be used by admin collaboration.
 
 Also important, the initial format has to be somewhat consistent
-* The PM needs to start with `threagetarian`
-* the `comment` in "threagetarian add **comment** filter" is a keyword and **shouldn't** be wrapped in `backticks`. The available options are
+* The PM needs to start with `threativore`
+* the `comment` in "threativore add **comment** filter" is a keyword and **shouldn't** be wrapped in `backticks`. The available options are
    * comment: a filter for comments
    * report: a filter for reports
    * url: a filter for post urls
@@ -59,7 +61,7 @@ Also important, the initial format has to be somewhat consistent
 Similar format like [#Add](#add) but use "remove" instead and you only need the filter type (i.e. "comment") and the regex. I.e.
 
 ```markdown
-threagetarian remove comment filter: `trial period`
+threativore remove comment filter: `trial period`
 ```
 ### Modify
 
@@ -69,7 +71,7 @@ Similar format like [#Add](#add) but use "modify" instead and you only need the 
 
 
 ```
-threagetarian modify report filter: `trial period`
+threativore modify report filter: `trial period`
 new filter: `trial run`
 reason: `Spam comment`
 action: `REMOVE`
@@ -81,7 +83,7 @@ description: `Known spam string`
 Use this format to show all filters matching the provided regex. The bot will report with all the details of each filter which has this string in their regexp
 
 ```
-threagetarian show comment filter: `period`
+threativore show comment filter: `period`
 ```
 
 ### List
@@ -89,7 +91,7 @@ threagetarian show comment filter: `period`
 Use this format to show all filters of a specific type
 
 ```
-threagetarian list comment filters
+threativore list comment filters
 ```
 
 ## Users
@@ -115,7 +117,7 @@ Any user can be trusted (even from other instances). Trusted users' reports get 
 The bot allows you to set new roles via PM. To do so, you need to use this format
 
 ```
-threagetarian add user: [@db0@lemmy.dbzer0.com](https://lemmy.dbzer0.com/u/db0)
+threativore add user: [@db0@lemmy.dbzer0.com](https://lemmy.dbzer0.com/u/db0)
 role: `moderator`
 ```
 
@@ -126,5 +128,5 @@ The user **has** to be in url format, i.e. `https://lemmy.dbzer0.com/u/db0`, not
 Works the same way, but use `remove` instead of `add`. E.g.
 
 ```
-threagetarian remove user: https://lemmy.dbzer0.com/u/db0
+threativore remove user: https://lemmy.dbzer0.com/u/db0
 ```

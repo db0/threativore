@@ -14,7 +14,7 @@ SQLITE_MODE = os.getenv("USE_SQLITE", "1") == "1"
 
 if SQLITE_MODE:
     logger.warning("Using SQLite for database")
-    APP.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///threagetarian.db"
+    APP.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///threativore.db"
 else:
     APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://postgres:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
     APP.config["SQLALCHEMY_ENGINE_OPTIONS"] = {

@@ -1,7 +1,7 @@
-from threagetarian.enums import EntityType, FilterType
-from threagetarian.orm.filters import Filter, FilterMatch
-from threagetarian.orm.seen import Seen
-from threagetarian.orm.user import User
+from threativore.enums import EntityType, FilterType
+from threativore.orm.filters import Filter, FilterMatch
+from threativore.orm.seen import Seen
+from threativore.orm.user import User
 
 
 def get_all_filters(filter_type: FilterType, regex_search: str | None = None) -> list[Filter]:

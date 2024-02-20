@@ -5,23 +5,23 @@ from typing import Any
 import regex as re
 from loguru import logger
 
-import threagetarian.database as database
-import threagetarian.exceptions as e
-from threagetarian.classes.filters import ThreagetarianFilters
-from threagetarian.classes.users import ThreagetarianUsers
-from threagetarian.enums import EntityType, FilterAction, FilterType, UserRoleTypes
-from threagetarian.flask import APP, db
-from threagetarian.orm.filters import FilterMatch
-from threagetarian.orm.seen import Seen
-from threagetarian.orm.user import User
+import threativore.database as database
+import threativore.exceptions as e
+from threativore.classes.filters import ThreativoreFilters
+from threativore.classes.users import ThreativoreUsers
+from threativore.enums import EntityType, FilterAction, FilterType, UserRoleTypes
+from threativore.flask import APP, db
+from threativore.orm.filters import FilterMatch
+from threativore.orm.seen import Seen
+from threativore.orm.user import User
 from pythorhead.types.sort import CommentSortType
 
 
-class Threagetarian:
+class Threativore:
     def __init__(self, _base_lemmy):
         self.lemmy = _base_lemmy.lemmy
-        self.filters = ThreagetarianFilters(self)
-        self.users = ThreagetarianUsers(self)
+        self.filters = ThreativoreFilters(self)
+        self.users = ThreativoreUsers(self)
         self.ensure_admin_exists()
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -30,9 +30,9 @@ class Threagetarian:
     @logger.catch(reraise=True)
     def ensure_admin_exists(self):
         with APP.app_context():
-            admin_user_url = os.getenv("THREAGETARIAN_ADMIN_URL")
+            admin_user_url = os.getenv("THREATIVORE_ADMIN_URL")
             if not admin_user_url:
-                raise e.ThreagetarianException("THREAGETARIAN_ADMIN_URL env not set")
+                raise e.ThreativoreException("THREATIVORE_ADMIN_URL env not set")
             admin = database.get_user(admin_user_url)
             if not admin:
                 admin = User(user_url=admin_user_url)
@@ -74,7 +74,7 @@ class Threagetarian:
                         self.lemmy.comment.remove(
                             comment_id=report["comment"]["id"],
                             removed=True,
-                            reason=f"Threagetarian automatic comment removal: {tfilter.reason}",
+                            reason=f"Threativore automatic comment removal: {tfilter.reason}",
                         )
                         entity_removed = True
                         if not database.filter_match_exists(report["comment"]["id"]):
@@ -98,7 +98,7 @@ class Threagetarian:
                             #     ban=True,
                             #     expires=expires,
                             #     person_id=report["comment_creator"]["id"],
-                            #     reason=f"Threagetarian automatic ban from comment report: {tfilter.reason}"
+                            #     reason=f"Threativore automatic ban from comment report: {tfilter.reason}"
                             # )
                             entity_banned = True
                         # self.lemmy.comment.resolve_report(report["comment_report"]["id"])
@@ -155,7 +155,7 @@ class Threagetarian:
                         self.lemmy.post.remove(
                             post_id=report["post"]["id"],
                             removed=True,
-                            reason=f"Threagetarian automatic post removal: {tfilter.reason}",
+                            reason=f"Threativore automatic post removal: {tfilter.reason}",
                         )
                         entity_removed = True
                         if not database.filter_match_exists(report["post"]["id"]):
@@ -179,7 +179,7 @@ class Threagetarian:
                             #     ban=True,
                             #     expires=expires,
                             #     person_id=report["post_creator"]["id"],
-                            #     reason=f"Threagetarian automatic ban from post report: {tfilter.reason}"
+                            #     reason=f"Threativore automatic ban from post report: {tfilter.reason}"
                             # )
                             entity_banned = True
                         # self.lemmy.comment.resolve_report(report["post_report"]["id"])
@@ -247,7 +247,7 @@ class Threagetarian:
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.comment.report(
                             comment_id=comment_id,
-                            reason=f"Threagetarian automatic comment: {tfilter.reason}",
+                            reason=f"Threativore automatic comment: {tfilter.reason}",
                         )
                         entity_reported = True
                     else:
@@ -256,14 +256,14 @@ class Threagetarian:
                         logger.debug(f"Reported {comment_id}")
                         self.lemmy.comment.report(
                             comment_id=comment_id,
-                            reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                            reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         )
                         entity_reported = True
 
                         # self.lemmy.comment.remove(
                         #     comment_id=comment_id,
                         #     removed=True,
-                        #     reason=f"Threagetarian automatic comment removal: {tfilter.reason}",
+                        #     reason=f"Threativore automatic comment removal: {tfilter.reason}",
                         # )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
@@ -277,7 +277,7 @@ class Threagetarian:
                             #     ban=True,
                             #     expires=expires,
                             #     person_id=comment["creator"]["id"],
-                            #     reason=f"Threagetarian automatic ban from post: {tfilter.reason}"
+                            #     reason=f"Threativore automatic ban from post: {tfilter.reason}"
                             # )
                             entity_banned = True
             seen_comment = Seen(
@@ -358,7 +358,7 @@ class Threagetarian:
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.post.report(
                             post_id=post_id,
-                            reason=f"Threagetarian automatic post report: {tfilter.reason}",
+                            reason=f"Threativore automatic post report: {tfilter.reason}",
                         )
                         entity_reported = True
                     else:
@@ -366,13 +366,13 @@ class Threagetarian:
                         logger.warning("Would remove post")
                         self.lemmy.post.report(
                             post_id=post_id,
-                            reason=f"Threagetarian automatic beta testing report: {tfilter.reason}",
+                            reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         )
                         entity_reported = True
                         # self.lemmy.comment.remove(
                         #     post_id=post_id,
                         #     removed=True,
-                        #     reason=f"Threagetarian automatic post removal: {tfilter.reason}",
+                        #     reason=f"Threativore automatic post removal: {tfilter.reason}",
                         # )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
@@ -386,7 +386,7 @@ class Threagetarian:
                             #     ban=True,
                             #     expires=expires,
                             #     person_id=post["creator"]["id"],
-                            #     reason=f"Threagetarian automatic ban from report: {tfilter.reason}"
+                            #     reason=f"Threativore automatic ban from report: {tfilter.reason}"
                             # )
                             entity_banned = True
 
@@ -411,7 +411,7 @@ class Threagetarian:
         # logger.info(json.dumps(pms, indent=4))
 
         for pm in pms["private_messages"]:
-            if "threagetarian" not in pm["private_message"]["content"].lower():
+            if "threativore" not in pm["private_message"]["content"].lower():
                 continue
             try:
                 filter_search = re.search(
@@ -433,7 +433,7 @@ class Threagetarian:
                     message=(f"Problem encountered when parsing operation: {err}"),
                 )
                 logger.warning(err)  # TODO: Reply back
-            except (e.ThreagetarianException, e.DBException) as err:
+            except (e.ThreativoreException, e.DBException) as err:
                 logger.error(err)
 
     def reply_to_pm(self, pm, message):

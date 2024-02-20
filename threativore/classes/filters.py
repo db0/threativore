@@ -3,16 +3,16 @@ from typing import Any
 import regex as re
 from loguru import logger
 
-import threagetarian.database as database
-import threagetarian.exceptions as e
-from threagetarian.enums import FilterAction, FilterType, UserRoleTypes
-from threagetarian.flask import db
-from threagetarian.orm.filters import Filter
+import threativore.database as database
+import threativore.exceptions as e
+from threativore.enums import FilterAction, FilterType, UserRoleTypes
+from threativore.flask import db
+from threativore.orm.filters import Filter
 
 
-class ThreagetarianFilters:
-    def __init__(self, threagetarian):
-        self.threagetarian = threagetarian
+class ThreativoreFilters:
+    def __init__(self, threativore):
+        self.threativore = threativore
 
     def add_filter(
         self,
@@ -25,9 +25,9 @@ class ThreagetarianFilters:
     ):
         user = database.get_user(user_url)
         if not user:
-            raise e.ThreagetarianException(f"{user_url} not known")
+            raise e.ThreativoreException(f"{user_url} not known")
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
-            raise e.ThreagetarianException(f"{user_url} doesn't have enough privileges to add filters")
+            raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to add filters")
         existing_filter = database.get_filter(filter)
         if existing_filter:
             raise e.ReplyException(f"Filter already exists: {existing_filter.regex} - {existing_filter.filter_type}")
@@ -46,9 +46,9 @@ class ThreagetarianFilters:
     def remove_filter(self, filter: str, user_url: str):
         user = database.get_user(user_url)
         if not user:
-            raise e.ThreagetarianException(f"{user_url} not known")
+            raise e.ThreativoreException(f"{user_url} not known")
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
-            raise e.ThreagetarianException(f"{user_url} doesn't have enough privileges to remove filters")
+            raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to remove filters")
         existing_filter = database.get_filter(filter)
         if not existing_filter:
             return
@@ -67,9 +67,9 @@ class ThreagetarianFilters:
     ) -> Filter:
         user = database.get_user(user_url)
         if not user:
-            raise e.ThreagetarianException(f"{user_url} not known")
+            raise e.ThreativoreException(f"{user_url} not known")
         if not user.can_do_filters():
-            raise e.ThreagetarianException(f"{user_url} doesn't have enough privileges to modify filters")
+            raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to modify filters")
         existing_filter = database.get_filter(existing_filter_regex)
         if not existing_filter:
             raise e.ReplyException(f"filter {existing_filter_regex} does not exist.")
@@ -129,7 +129,7 @@ class ThreagetarianFilters:
                     filter_type=filter_type,
                     description=filter_description,
                 )
-                self.threagetarian.reply_to_pm(
+                self.threativore.reply_to_pm(
                     pm=pm,
                     message=(
                         f"New Filter has been succesfully added:\n\n\n"
@@ -158,7 +158,7 @@ class ThreagetarianFilters:
                     filter_type=filter_type,
                     description=filter_description,
                 )
-                self.threagetarian.reply_to_pm(
+                self.threativore.reply_to_pm(
                     pm=pm,
                     message=(
                         f"Filter has been succesfully modified:\n\n\n"
@@ -172,7 +172,7 @@ class ThreagetarianFilters:
                 )
         if filter_method == "remove":
             self.remove_filter(filter=filter_regex)
-            self.threagetarian.reply_to_pm(
+            self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Filter has been succesfully remmoved:\n\n\n" "---\n" f"* regex: `{filter_regex}`"),
             )
@@ -188,7 +188,7 @@ class ThreagetarianFilters:
                     f"* description: {ffilter.description}"
                 )
 
-            self.threagetarian.reply_to_pm(
+            self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Here are all the available {filter_type.name} filters containing `{filter_regex}`:\n\n\n{filters_string}"),
             )
@@ -203,10 +203,10 @@ class ThreagetarianFilters:
         filter_type = FilterType[filter_search.group(1).upper()]
         all_filters = [(f.regex) for f in database.get_all_filters(FilterType.COMMENT)]
         if len(all_filters) == 0:
-            self.threagetarian.reply_to_pm(pm=pm, message=f"There are currently no {filter_type.name} defined.")
+            self.threativore.reply_to_pm(pm=pm, message=f"There are currently no {filter_type.name} defined.")
             return
         joined_filters = "`\n* `".join(all_filters)
-        self.threagetarian.reply_to_pm(
+        self.threativore.reply_to_pm(
             pm=pm,
             message=(f"Here are all the available {filter_type.name} filter regexp:\n\n\n" "---\n" f"* `{joined_filters}`"),
         )

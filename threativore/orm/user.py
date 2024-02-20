@@ -2,9 +2,9 @@ from datetime import datetime
 
 from sqlalchemy import Enum, UniqueConstraint, event
 
-import threagetarian.exceptions as e
-from threagetarian.enums import UserRoleTypes
-from threagetarian.flask import db
+import threativore.exceptions as e
+from threativore.enums import UserRoleTypes
+from threativore.flask import db
 
 
 class UserRole(db.Model):
