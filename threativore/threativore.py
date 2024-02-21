@@ -252,19 +252,19 @@ class Threativore:
                         entity_reported = True
                     else:
                         # BETA TESTING ONLY
-                        logger.warning("Would remove comment")
-                        logger.debug(f"Reported {comment_id}")
-                        self.lemmy.comment.report(
-                            comment_id=comment_id,
-                            reason=f"Threativore automatic beta testing report: {tfilter.reason}",
-                        )
-                        entity_reported = True
-
-                        # self.lemmy.comment.remove(
+                        # logger.warning("Would remove comment")
+                        # logger.debug(f"Reported {comment_id}")
+                        # self.lemmy.comment.report(
                         #     comment_id=comment_id,
-                        #     removed=True,
-                        #     reason=f"Threativore automatic comment removal: {tfilter.reason}",
+                        #     reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         # )
+                        # entity_reported = True
+
+                        self.lemmy.comment.remove(
+                            comment_id=comment_id,
+                            removed=True,
+                            reason=f"Threativore automatic comment removal: {tfilter.reason}",
+                        )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
@@ -363,17 +363,17 @@ class Threativore:
                         entity_reported = True
                     else:
                         # BETA TESTING ONLY
-                        logger.warning("Would remove post")
-                        self.lemmy.post.report(
-                            post_id=post_id,
-                            reason=f"Threativore automatic beta testing report: {tfilter.reason}",
-                        )
-                        entity_reported = True
-                        # self.lemmy.comment.remove(
+                        # logger.warning("Would remove post")
+                        # self.lemmy.post.report(
                         #     post_id=post_id,
-                        #     removed=True,
-                        #     reason=f"Threativore automatic post removal: {tfilter.reason}",
+                        #     reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         # )
+                        entity_reported = True
+                        self.lemmy.post.remove(
+                            post_id=post_id,
+                            removed=True,
+                            reason=f"Threativore automatic post removal: {tfilter.reason}",
+                        )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
@@ -415,7 +415,7 @@ class Threativore:
                 continue
             try:
                 filter_search = re.search(
-                    r"(add|remove|show|modify) (report|comment) filter: ?`(.+?)`[ \n]*?",
+                    r"(add|remove|show|modify) (report|comment|url) filter: ?`(.+?)`[ \n]*?",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
