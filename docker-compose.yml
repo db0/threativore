@@ -1,0 +1,17 @@
+version: "3.3"
+services:
+  automod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - LEMMY_DOMAIN=
+      - LEMMY_USERNAME=
+      - LEMMY_PASSWORD=
+      - USE_SQLITE=1
+      - THREATIVORE_ADMIN_URL=
+    restart: always
+    ports:
+      - 8000:8080
+    volumes:
+      - ./volumes/automoderator:/usr/src/app/database
