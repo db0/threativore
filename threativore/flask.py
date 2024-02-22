@@ -16,7 +16,7 @@ if SQLITE_MODE:
     logger.warning("Using SQLite for database")
     APP.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///threativore.db"
 else:
-    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://postgres:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
+    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
     APP.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_size": 50,
         "max_overflow": -1,
