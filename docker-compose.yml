@@ -13,6 +13,3 @@ services:
     restart: always
     volumes:
       - /path/to/volume:./volumes
-    ports:
-      - 8000:8080
-
