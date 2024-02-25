@@ -5,3 +5,4 @@
 - [ ] Integrate filters with Fediseer
 - [ ] Add REST API
 - [ ] Add GUI
+- [ ] Add Machine Learning spam detection
