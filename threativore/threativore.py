@@ -43,20 +43,25 @@ class Threativore:
 
     def resolve_reports(self):
         logger.debug("Checking Reports...")
-        self.resolve_post_reports()
-        self.resolve_comment_reports()
+        self.resolve_reports()
 
-    def resolve_comment_reports(self):
+    def resolve_reports(self):
         rl = self.lemmy.comment.report_list(unresolved_only=False, limit=5)
+        for report in self.lemmy.post.report_list():
+            rl.append(report)
         # logger.info(json.dumps(rl, indent=4))
         comment_filters = database.get_all_filters(FilterType.COMMENT)
         report_filters = database.get_all_filters(FilterType.REPORT)
         username_filters = database.get_all_filters(FilterType.USERNAME)
         sorted_filters = sorted(report_filters + comment_filters + username_filters, key=lambda x: x.filter_action.value)
         for report in rl:
+            if "comment_report" in report.keys():
+                item_type = "comment"
+            else:
+                item_type = "post"
             entity_removed = False
             entity_banned = False
-            report_id: int = report["comment_report"]["id"]
+            report_id: int = report[f"{item_type}_report"]["id"]
             if database.has_been_seen(report_id, EntityType.REPORT):
                 continue
             for tfilter in sorted_filters:
@@ -65,29 +70,36 @@ class Threativore:
                 matching_string = ""
                 matching_content = ""
                 if tfilter.filter_type == FilterType.REPORT:
-                    filter_match = re.search(tfilter.regex, report["comment"]["content"], re.IGNORECASE)
-                    matching_string = f'comment body: {report["comment"]["content"]}'
-                    matching_content = report["comment"]["content"]
+                    filter_match = re.search(tfilter.regex, report[f"{item_type}"]["content"], re.IGNORECASE)
+                    matching_string = f'{item_type} body: {report[f"{item_type}"]["content"]}'
+                    matching_content = report[f"{item_type}"]["content"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, report["creator"]["name"], re.IGNORECASE)
-                    matching_string = f'commenter username: {report["creator"]["name"]}'
+                    matching_string = f'{item_type} username: {report["creator"]["name"]}'
                     matching_content = report["creator"]["name"]
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
                         logger.warning("Would remove comment from report")
-                        self.lemmy.comment.remove(
-                            comment_id=report["comment"]["id"],
-                            removed=True,
-                            reason=f"Threativore automatic comment removal: {tfilter.reason}",
-                        )
+                        if item_type == "comment":
+                            self.lemmy.comment.remove(
+                                comment_id=report["comment"]["id"],
+                                removed=True,
+                                reason=f"Threativore automatic comment removal: {tfilter.reason}",
+                            )
+                        else:
+                            self.lemmy.post.remove(
+                                post_id=report["post"]["id"],
+                                removed=True,
+                                reason=f"Threativore automatic post removal: {tfilter.reason}",
+                            )
                         entity_removed = True
-                        if not database.filter_match_exists(report["comment"]["id"]):
+                        if not database.filter_match_exists(report[f"{item_type}"]["id"]):
                             new_match = FilterMatch(
-                                actor_id=report["comment_creator"]["actor_id"],
-                                entity_id=report["comment"]["id"],
+                                actor_id=report[f"{item_type}_creator"]["actor_id"],
+                                entity_id=report[f"{item_type}"]["id"],
                                 report_id=report_id,
-                                url=report["comment"]["ap_id"],
+                                url=report[f"{item_type}"]["ap_id"],
                                 content=matching_content,
                                 filter_id=tfilter.id,
                             )
@@ -99,107 +111,18 @@ class Threativore:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
-                            logger.info(f"Banned {report['comment_creator']['actor_id']} for {tfilter.filter_action.name}")
+                            logger.info(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
-                                person_id=report["comment_creator"]["id"],
-                                reason=f"Threativore automatic ban from comment report: {tfilter.reason}"
+                                person_id=report[f"{item_type}_creator"]["id"],
+                                reason=f"Threativore automatic ban from {item_type} report: {tfilter.reason}"
                             )
                             entity_banned = True
-                        # self.lemmy.comment.resolve_report(report["comment_report"]["id"])
             seen_report = Seen(
                 entity_id=report_id,
                 entity_type=EntityType.REPORT,
                 entity_url=report["comment"]["ap_id"],
-            )
-            db.session.add(seen_report)
-            db.session.commit()
-
-    def resolve_post_reports(self):
-        rl = self.lemmy.post.report_list()
-        # logger.info(json.dumps(rl, indent=4))
-        body_filters = database.get_all_filters(FilterType.COMMENT)
-        report_filters = database.get_all_filters(FilterType.REPORT)
-        url_filters = database.get_all_filters(FilterType.URL)
-        username_filters = database.get_all_filters(FilterType.USERNAME)
-        sorted_filters = sorted(report_filters + body_filters + url_filters + username_filters, key=lambda x: x.filter_action.value)
-        for report in rl:
-            entity_removed = False
-            entity_banned = False
-            report_id: int = report["post_report"]["id"]
-            if database.has_been_seen(report_id, EntityType.REPORT):
-                continue
-            for tfilter in sorted_filters:
-                if entity_removed:
-                    break
-                matched_filter = False
-                matching_string = ""
-                matching_content = ""
-                if tfilter.filter_type == FilterType.REPORT:
-                    filter_match = re.search(tfilter.regex, report["post"]["name"], re.IGNORECASE)
-                    if filter_match:
-                        matched_filter = True
-                        matching_string = f'post title: {report["post"]["name"]}'
-                        matching_content = report["post"]["name"]
-                    elif "body" in report["post"]:
-                        filter_match = re.search(tfilter.regex, report["post"]["body"], re.IGNORECASE)
-                        if filter_match:
-                            matched_filter = True
-                            matching_string = f'post body: {report["post"]["body"]}'
-                            matching_content = report["post"]["body"]
-                if "url" in report["post"] and tfilter.filter_type == FilterType.URL:
-                    filter_match = re.search(tfilter.regex, report["post"]["url"], re.IGNORECASE)
-                    if filter_match:
-                        matched_filter = True
-                        matching_string = f'post url: {report["post"]["url"]}'
-                        matching_content = report["post"]["url"]
-                if tfilter.filter_type == FilterType.USERNAME:
-                    filter_match = re.search(tfilter.regex, report["post_creator"]["name"], re.IGNORECASE)
-                    if filter_match:
-                        matched_filter = True
-                        matching_string = f'poster username: {report["post_creator"]["name"]}'
-                        matching_content = report["post_creator"]["name"]
-                if matched_filter:
-                    logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
-                    if tfilter.filter_action != FilterAction.REPORT:
-                        logger.warning("Would remove post from report")
-                        self.lemmy.post.remove(
-                            post_id=report["post"]["id"],
-                            removed=True,
-                            reason=f"Threativore automatic post removal: {tfilter.reason}",
-                        )
-                        entity_removed = True
-                        if not database.filter_match_exists(report["post"]["id"]):
-                            new_match = FilterMatch(
-                                actor_id=report["post_creator"]["actor_id"],
-                                entity_id=report["post"]["id"],
-                                report_id=report_id,
-                                url=report["post"]["ap_id"],
-                                content=matching_content,
-                                filter_id=tfilter.id,
-                            )
-                            db.session.add(new_match)
-                            db.session.commit()
-                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
-                            expires = None
-                            if tfilter.filter_action == FilterAction.BAN30:
-                                expires = datetime.utcnow() + timedelta(days=30)
-                            if tfilter.filter_action == FilterAction.BAN7:
-                                expires = datetime.utcnow() + timedelta(days=7)
-                            logger.info(f"Banned {report['post_creator']['actor_id']} for {tfilter.filter_action.name}")
-                            self.lemmy.user.ban(
-                                ban=True,
-                                expires=expires,
-                                person_id=report["post_creator"]["id"],
-                                reason=f"Threativore automatic ban from post report: {tfilter.reason}"
-                            )
-                            entity_banned = True
-                        # self.lemmy.comment.resolve_report(report["post_report"]["id"])
-            seen_report = Seen(
-                entity_id=report_id,
-                entity_type=EntityType.REPORT,
-                entity_url=report["post"]["ap_id"],
             )
             db.session.add(seen_report)
             db.session.commit()
