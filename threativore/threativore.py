@@ -15,6 +15,7 @@ from threativore.orm.filters import FilterMatch
 from threativore.orm.seen import Seen
 from threativore.orm.user import User
 from pythorhead.types.sort import CommentSortType
+from threativore.argparser import args
 
 
 class Threativore:
@@ -61,12 +62,15 @@ class Threativore:
                 if entity_removed:
                     break
                 matching_string = ""
+                matching_content = ""
                 if tfilter.filter_type == FilterType.REPORT:
                     filter_match = re.search(tfilter.regex, report["comment"]["content"], re.IGNORECASE)
                     matching_string = f'comment body: {report["comment"]["content"]}'
+                    matching_content = report["comment"]["content"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, report["creator"]["name"], re.IGNORECASE)
                     matching_string = f'commenter username: {report["creator"]["name"]}'
+                    matching_content = report["creator"]["name"]
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
@@ -83,6 +87,7 @@ class Threativore:
                                 entity_id=report["comment"]["id"],
                                 report_id=report_id,
                                 url=report["comment"]["ap_id"],
+                                content=matching_content,
                                 filter_id=tfilter.id,
                             )
                             db.session.add(new_match)
@@ -128,26 +133,31 @@ class Threativore:
                     break
                 matched_filter = False
                 matching_string = ""
+                matching_content = ""
                 if tfilter.filter_type == FilterType.REPORT:
                     filter_match = re.search(tfilter.regex, report["post"]["name"], re.IGNORECASE)
                     if filter_match:
                         matched_filter = True
                         matching_string = f'post title: {report["post"]["name"]}'
+                        matching_content = report["post"]["name"]
                     elif "body" in report["post"]:
                         filter_match = re.search(tfilter.regex, report["post"]["body"], re.IGNORECASE)
                         if filter_match:
                             matched_filter = True
                             matching_string = f'post body: {report["post"]["body"]}'
+                            matching_content = report["post"]["body"]
                 if "url" in report["post"] and tfilter.filter_type == FilterType.URL:
                     filter_match = re.search(tfilter.regex, report["post"]["url"], re.IGNORECASE)
                     if filter_match:
                         matched_filter = True
                         matching_string = f'post url: {report["post"]["url"]}'
+                        matching_content = report["post"]["url"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, report["post_creator"]["name"], re.IGNORECASE)
                     if filter_match:
                         matched_filter = True
                         matching_string = f'poster username: {report["post_creator"]["name"]}'
+                        matching_content = report["post_creator"]["name"]
                 if matched_filter:
                     logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
@@ -164,6 +174,7 @@ class Threativore:
                                 entity_id=report["post"]["id"],
                                 report_id=report_id,
                                 url=report["post"]["ap_id"],
+                                content=matching_content,
                                 filter_id=tfilter.id,
                             )
                             db.session.add(new_match)
@@ -221,6 +232,8 @@ class Threativore:
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
             for tfilter in sorted_filters:
+                matching_string = ""
+                matching_content = ""
                 if entity_removed:
                     break
                 if entity_reported and tfilter.filter_action == FilterAction.REPORT:
@@ -228,9 +241,11 @@ class Threativore:
                 if tfilter.filter_type == FilterType.COMMENT:
                     filter_match = re.search(tfilter.regex, comment["comment"]["content"], re.IGNORECASE)
                     matching_string = f'comment body: {comment["comment"]["content"]}'
+                    matching_content = comment["comment"]["content"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, comment["creator"]["name"], re.IGNORECASE)
                     matching_string = f'commenter username: {comment["creator"]["name"]}'
+                    matching_content = comment["creator"]["name"]
                 # logger.info([comment["comment"]["content"], f.regex])
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
@@ -240,6 +255,7 @@ class Threativore:
                             actor_id=comment["creator"]["actor_id"],
                             entity_id=comment_id,
                             url=comment["comment"]["ap_id"],
+                            content=matching_content,
                             filter_id=tfilter.id,
                         )
                         db.session.add(new_match)
@@ -318,6 +334,8 @@ class Threativore:
             entity_reported = False
             entity_banned = False
             for tfilter in sorted_filters:
+                matching_string = ""
+                matching_content = ""
                 if entity_removed:
                     break
                 if entity_reported and tfilter.filter_action == FilterAction.REPORT:
@@ -328,21 +346,25 @@ class Threativore:
                     if filter_match:
                         matched_filter = True
                         matching_string = f'post title: {post["post"]["name"]}'
+                        matching_content = post["post"]["name"]
                     elif "body" in post["post"]:
                         filter_match = re.search(tfilter.regex, post["post"]["body"], re.IGNORECASE)
                         if filter_match:
                             matched_filter = True
                             matching_string = f'post body: {post["post"]["body"]}'
+                            matching_content = post["post"]["body"]
                 if "url" in post["post"] and tfilter.filter_type == FilterType.URL:
                     filter_match = re.search(tfilter.regex, post["post"]["url"], re.IGNORECASE)
                     if filter_match:
                         matched_filter = True
                         matching_string = f'post url: {post["post"]["url"]}'
+                        matching_content = post["post"]["url"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, post["creator"]["name"], re.IGNORECASE)
                     if filter_match:
                         matched_filter = True
                         matching_string = f'poster username: {post["creator"]["name"]}'
+                        matching_content = post["creator"]["name"]
                 # logger.info([comment["comment"]["content"], f.regex])
                 if matched_filter:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
@@ -351,6 +373,7 @@ class Threativore:
                             actor_id=post["creator"]["actor_id"],
                             entity_id=post_id,
                             url=post["post"]["ap_id"],
+                            content=matching_content,
                             filter_id=tfilter.id,
                         )
                         db.session.add(new_match)
@@ -442,3 +465,8 @@ class Threativore:
             content=message,
         )
         self.lemmy.private_message.mark_as_read(pm["private_message"]["id"], True)
+
+    def gc(self):
+        rows_deleted = database.delete_seen_rows(args.gc_days)
+        logger.debug(f"Deleting {rows_deleted} Seen rows")
+        db.session.commit()

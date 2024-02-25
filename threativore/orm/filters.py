@@ -14,6 +14,7 @@ class FilterMatch(db.Model):
     report_id = db.Column(db.Integer, unique=True, nullable=True, index=True)
     entity_id = db.Column(db.Integer, unique=True, nullable=False, index=True)
     url = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False)
     actor_id = db.Column(db.Text, nullable=False, index=True)
     filter_id = db.Column(db.Integer, db.ForeignKey("filters.id", ondelete="CASCADE"))
     filter = db.relationship("Filter", back_populates="filter_matches")

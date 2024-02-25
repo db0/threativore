@@ -30,6 +30,14 @@ arg_parser.add_argument(
     type=int,
     help="Provide a different port to start with",
 )
+arg_parser.add_argument(
+    "--gc_days",
+    action="store",
+    default=7,
+    required=False,
+    type=int,
+    help="For how many days to keep temporary rows in the DB",
+)
 
 arg_parser.add_argument("--allow_all_ips", action="store_true", help="If set, will consider all IPs safe")
 arg_parser.add_argument("--test", action="store_true", help="Test")

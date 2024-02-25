@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from threativore.enums import EntityType, FilterType
 from threativore.orm.filters import Filter, FilterMatch
 from threativore.orm.seen import Seen
@@ -47,3 +48,8 @@ def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
 
 def filter_match_exists(entity_id: int) -> bool:
     return FilterMatch.query.filter_by(entity_id=entity_id).count() == 1
+
+def delete_seen_rows(days_older_than:int=7):
+    return Seen.query.filter(
+        Seen.updated < datetime.utcnow() - timedelta(days=days_older_than)
+    ).delete()

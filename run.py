@@ -13,6 +13,7 @@ if __name__ == "__main__":
                 threativore.check_posts()
                 threativore.check_comments()
                 threativore.resolve_reports()
+                threativore.gc()
                 time.sleep(5)
             except Exception as err:
                 logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
