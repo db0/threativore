@@ -49,9 +49,10 @@ class Threativore:
     def resolve_comment_reports(self):
         rl = self.lemmy.comment.report_list(unresolved_only=False, limit=5)
         # logger.info(json.dumps(rl, indent=4))
-        comment_filters = database.get_all_filters(FilterType.REPORT)
+        comment_filters = database.get_all_filters(FilterType.COMMENT)
+        report_filters = database.get_all_filters(FilterType.REPORT)
         username_filters = database.get_all_filters(FilterType.USERNAME)
-        sorted_filters = sorted(comment_filters + username_filters, key=lambda x: x.filter_action.value)
+        sorted_filters = sorted(report_filters + comment_filters + username_filters, key=lambda x: x.filter_action.value)
         for report in rl:
             entity_removed = False
             entity_banned = False
@@ -118,10 +119,11 @@ class Threativore:
     def resolve_post_reports(self):
         rl = self.lemmy.post.report_list()
         # logger.info(json.dumps(rl, indent=4))
-        body_filters = database.get_all_filters(FilterType.REPORT)
+        body_filters = database.get_all_filters(FilterType.COMMENT)
+        report_filters = database.get_all_filters(FilterType.REPORT)
         url_filters = database.get_all_filters(FilterType.URL)
         username_filters = database.get_all_filters(FilterType.USERNAME)
-        sorted_filters = sorted(body_filters + url_filters + username_filters, key=lambda x: x.filter_action.value)
+        sorted_filters = sorted(report_filters + body_filters + url_filters + username_filters, key=lambda x: x.filter_action.value)
         for report in rl:
             entity_removed = False
             entity_banned = False
