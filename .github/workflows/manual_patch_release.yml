@@ -1,0 +1,60 @@
+name: threativore manual patch release
+
+on:
+  workflow_dispatch:
+      
+permissions:
+  contents: write
+  pull-requests: read
+  
+jobs:
+  build-n-publish:
+    permissions: write-all
+    name: threativore manual patch release
+    runs-on: ubuntu-latest
+    steps:
+    - name: "✔️ Checkout"
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: "📣 Release on push"
+      id: release
+      uses: rymndhng/release-on-push-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        bump_version_scheme: patch
+        use_github_release_notes: true
+    - name: "✏️ Generate release changelog"
+      if: ${{ steps.release.outputs.version != '' }}
+      uses: heinrichreimer/github-changelog-generator-action@v2.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: "💾 Commit new version"
+      if: ${{ steps.release.outputs.version != '' }}
+      run: |
+          version=${{ steps.release.outputs.version }}
+          sed -i "s/^THREATIVORE_VERSION = \".*\"/THREATIVORE_VERSION = \"${version}\"/g" ./threativore/consts.py
+          git config user.email github-actions@github.com
+          git config user.name github-actions
+          git commit -am 'version incremented'
+          git push
+    - name: Login to GitHub Container Registry
+      if: ${{ steps.release.outputs.version != '' }}
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Free disk space
+    #   if: ${{ steps.release.outputs.version != '' }}
+    #   uses: jlumbroso/free-disk-space@main
+    #   with:
+    #     tool-cache: false
+    - name: "Build and Publish Container to Github Container Registry"
+      if: ${{ steps.release.outputs.version != '' }}
+      run: |
+        docker build -t ghcr.io/db0/threativore:${{ steps.release.outputs.version }} --label "org.opencontainers.image.source=https://github.com/db0/threativore" --label "org.opencontainers.image.licenses=AGPL3" .
+        docker push ghcr.io/db0/threativore:${{ steps.release.outputs.version }}
+        docker tag ghcr.io/db0/threativore:${{ steps.release.outputs.version }} ghcr.io/db0/threativore:latest
+        docker push ghcr.io/db0/threativore:latest
