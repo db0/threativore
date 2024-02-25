@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 from threativore.enums import EntityType, FilterType
 from threativore.orm.filters import Filter, FilterMatch
 from threativore.orm.seen import Seen
-from threativore.orm.user import User
-
+from threativore.orm.user import User, UserRole
+from threativore.flask import db
+from sqlalchemy.sql import exists
 
 def get_all_filters(filter_type: FilterType, regex_search: str | None = None) -> list[Filter]:
     query = Filter.query.filter_by(
@@ -26,6 +27,15 @@ def get_filter(filter_regex: str) -> Filter:
 
 def get_user(user_url: str) -> User:
     return User.query.filter_by(user_url=user_url).first()
+
+def actor_bypasses_filter(user_url: str) -> User:
+    return db.session.query(
+        exists().where(
+            UserRole.user_id == User.id
+        ).where(
+            User.user_url == user_url
+        )
+    ).scalar()
 
 
 def has_been_seen(entity_id: int, entity_type: EntityType):

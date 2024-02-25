@@ -3,8 +3,12 @@ import enum
 
 class UserRoleTypes(enum.Enum):
     ADMIN = 0
+    # Can add Trusted Users and Filters
     MODERATOR = 1
+    # Reports from this user are treated as trustrworthy
     TRUSTED = 2
+    # Their posts are not triggering the spam filter
+    KNOWN = 3
 
 
 class FilterAction(enum.Enum):

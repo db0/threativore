@@ -87,7 +87,7 @@ class ThreativoreUsers:
                 f"Role {user_role.name} has been succesfully added to {user_url} " f"from {requesting_user.user_url}",
             )
         else:
-            roles_to_remove = [UserRoleTypes.MODERATOR, UserRoleTypes.TRUSTED]
+            roles_to_remove = [UserRoleTypes.MODERATOR, UserRoleTypes.TRUSTED, UserRoleTypes.KNOWN]
             if user_role_search:
                 user_role = UserRoleTypes[user_role_search.group(1).upper()]
                 if user_role == UserRoleTypes.ADMIN:
@@ -96,7 +96,7 @@ class ThreativoreUsers:
                     raise e.ReplyException("Sorry, you do not have enough rights to remove users from MODERATOR.")
                 roles_to_remove = [user_role]
             elif not requesting_user.can_create_mods():
-                roles_to_remove = [UserRoleTypes.TRUSTED]
+                roles_to_remove = [UserRoleTypes.TRUSTED, UserRoleTypes.KNOWN]
             for role in roles_to_remove:
                 self.remove_role(
                     user_url=user_url,

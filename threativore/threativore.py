@@ -231,6 +231,10 @@ class Threativore:
                 logger.debug(comment["comment"]["content"])
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
+            user_url = comment["creator"]["actor_id"]
+            if database.actor_bypasses_filter(user_url):
+                logger.debug(f"Bypassing checks on user {user_url}")
+                continue
             for tfilter in sorted_filters:
                 matching_string = ""
                 matching_content = ""
@@ -252,7 +256,7 @@ class Threativore:
                     # Comments
                     if not database.filter_match_exists(comment_id):
                         new_match = FilterMatch(
-                            actor_id=comment["creator"]["actor_id"],
+                            actor_id=user_url,
                             entity_id=comment_id,
                             url=comment["comment"]["ap_id"],
                             content=matching_content,
@@ -330,6 +334,10 @@ class Threativore:
             post_id: int = post["post"]["id"]
             if database.has_been_seen(post_id, EntityType.POST):
                 continue
+            user_url = post["creator"]["actor_id"]
+            if database.actor_bypasses_filter(user_url):
+                logger.debug(f"Bypassing checks on user {user_url}")
+                continue
             entity_removed = False
             entity_reported = False
             entity_banned = False
@@ -370,7 +378,7 @@ class Threativore:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
                     if not database.filter_match_exists(post_id):
                         new_match = FilterMatch(
-                            actor_id=post["creator"]["actor_id"],
+                            actor_id=user_url,
                             entity_id=post_id,
                             url=post["post"]["ap_id"],
                             content=matching_content,
