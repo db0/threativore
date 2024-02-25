@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  threativore:
+    image: ghcr.io/db0/threativore:latest
+    hostname: "threativore"
+    user: 991:991
+    # See .env_template for description of each variable
+    environment:
+      - LEMMY_DOMAIN=${LEMMY_DOMAIN}
+      - LEMMY_USERNAME=${LEMMY_USERNAME}
+      - LEMMY_PASSWORD=${LEMMY_PASSWORD}
+      - USE_SQLITE=1
+      - THREATIVORE_ADMIN_URL=${THREATIVORE_ADMIN_URL}
+    restart: unless-stopped
+    volumes:
+      - /path/to/volume:./volumes

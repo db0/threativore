@@ -16,7 +16,7 @@ if SQLITE_MODE:
     logger.warning("Using SQLite for database")
     APP.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///threativore.db"
 else:
-    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://postgres:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
+    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
     APP.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_size": 50,
         "max_overflow": -1,
@@ -28,7 +28,7 @@ db = SQLAlchemy(APP)
 if not SQLITE_MODE:
     with APP.app_context():
         logger.warning(f"pool size = {db.engine.pool.size()}")
-logger.init_ok("Threagitarian Database", status="Started")
+logger.init_ok("Threativore Database", status="Started")
 
 # Allow local workstation run
 if cache is None:
