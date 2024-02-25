@@ -6,3 +6,4 @@
 - [ ] Add REST API
 - [ ] Add GUI
 - [ ] Add Machine Learning spam detection
+- [ ] Add support for other Fediverse software like Mastodon
