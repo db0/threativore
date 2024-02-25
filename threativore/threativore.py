@@ -99,13 +99,13 @@ class Threativore:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
-                            logger.warning(f"Would ban for {expires}")
-                            # self.lemmy.user.ban(
-                            #     ban=True,
-                            #     expires=expires,
-                            #     person_id=report["comment_creator"]["id"],
-                            #     reason=f"Threativore automatic ban from comment report: {tfilter.reason}"
-                            # )
+                            logger.info(f"Banned {report['comment_creator']['actor_id']} for {tfilter.filter_action.name}")
+                            self.lemmy.user.ban(
+                                ban=True,
+                                expires=expires,
+                                person_id=report["comment_creator"]["id"],
+                                reason=f"Threativore automatic ban from comment report: {tfilter.reason}"
+                            )
                             entity_banned = True
                         # self.lemmy.comment.resolve_report(report["comment_report"]["id"])
             seen_report = Seen(
@@ -187,13 +187,13 @@ class Threativore:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
-                            logger.warning(f"Would ban for {expires}")
-                            # self.lemmy.user.ban(
-                            #     ban=True,
-                            #     expires=expires,
-                            #     person_id=report["post_creator"]["id"],
-                            #     reason=f"Threativore automatic ban from post report: {tfilter.reason}"
-                            # )
+                            logger.info(f"Banned {report['post_creator']['actor_id']} for {tfilter.filter_action.name}")
+                            self.lemmy.user.ban(
+                                ban=True,
+                                expires=expires,
+                                person_id=report["post_creator"]["id"],
+                                reason=f"Threativore automatic ban from post report: {tfilter.reason}"
+                            )
                             entity_banned = True
                         # self.lemmy.comment.resolve_report(report["post_report"]["id"])
             seen_report = Seen(
@@ -294,13 +294,13 @@ class Threativore:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
-                            logger.warning(f"Would ban for {expires}")
-                            # self.lemmy.user.ban(
-                            #     ban=True,
-                            #     expires=expires,
-                            #     person_id=comment["creator"]["id"],
-                            #     reason=f"Threativore automatic ban from post: {tfilter.reason}"
-                            # )
+                            logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
+                            self.lemmy.user.ban(
+                                ban=True,
+                                expires=expires,
+                                person_id=comment["creator"]["id"],
+                                reason=f"Threativore automatic ban from post: {tfilter.reason}"
+                            )
                             entity_banned = True
             seen_comment = Seen(
                 entity_id=comment_id,
@@ -414,13 +414,13 @@ class Threativore:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
-                            logger.warning(f"Would ban for {expires}")
-                            # self.lemmy.user.ban(
-                            #     ban=True,
-                            #     expires=expires,
-                            #     person_id=post["creator"]["id"],
-                            #     reason=f"Threativore automatic ban from report: {tfilter.reason}"
-                            # )
+                            logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
+                            self.lemmy.user.ban(
+                                ban=True,
+                                expires=expires,
+                                person_id=post["creator"]["id"],
+                                reason=f"Threativore automatic ban from report: {tfilter.reason}"
+                            )
                             entity_banned = True
 
             seen_post = Seen(
