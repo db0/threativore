@@ -4,6 +4,12 @@ A Fediverse/Threadiverse bot to fight against spam and help with moderation
 
 The name is a portmanteau of Threats + Vore. I.e. this is a tool that eats threats.
 
+# Roadmap
+
+
+See the [Roadmap](README_roadmap.md)
+
+
 # Setup
 
 ## Clone the repo
@@ -22,49 +28,7 @@ Then move into the new `threativore` directory.
 
 ## Option 2 - Run with docker
 
-You can easily run threativore alongside your existing docker containers for Lemmy.  If you used the `docker-compose` method of installing Lemmy this is even easier.
-
-### Docker Compose
-
-_Note: Remember to modify the yaml as needed, for example granting access to the Lemmy networks_
-
-#### Using Volumes (and sqlite)
-
-Modify your existing `docker-compose.yml` and add threativore as another container.  An example may look like
-```yaml
-  automod:
-    build:
-      context: ./threativore # Note this is the same directory you cloned above
-      dockerfile: Dockerfile
-    environment:
-      - LEMMY_DOMAIN=<<yourlemmydomain.foo >>
-      - LEMMY_USERNAME=<<Your Bot's Username (created within Lemmy)>>
-      - LEMMY_PASSWORD=<<Your Bot's Password (created within Lemmy)>>
-      - USE_SQLITE=1
-      - THREATIVORE_ADMIN_URL=<<Full URL to your own admin profile, such as lemmy.foo/u/yourusername>>
-    restart: always
-    volumes:
-      - /path/to/volume:./volumes
-    ports:
-      - 8000:8080
-```
-
-#### Using postgres (separate container)
-```yaml
-  automod:
-    build:
-      context: ./threativore # Note this is the same directory you cloned above
-      dockerfile: Dockerfile
-    environment:
-      - LEMMY_DOMAIN=<<yourlemmydomain.foo >>
-      - LEMMY_USERNAME=<<Your Bot's Username (created within Lemmy)>>
-      - LEMMY_PASSWORD=<<Your Bot's Password (created within Lemmy)>>
-      - USE_SQLITE=0
-      - THREATIVORE_ADMIN_URL=<<Full URL to your own admin profile, such as lemmy.foo/u/yourusername>>
-      - POSTGRES_USER=<<postgres username>>
-      - POSTGRES_URL=<<postgres url>>
-      - POSTGRES_PASS=<<postgres password>>
-```
+See the [Docker README](README_docker.md)
 
 # Use
 
