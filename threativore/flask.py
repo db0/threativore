@@ -28,7 +28,7 @@ db = SQLAlchemy(APP)
 if not SQLITE_MODE:
     with APP.app_context():
         logger.warning(f"pool size = {db.engine.pool.size()}")
-logger.init_ok("Threagitarian Database", status="Started")
+logger.init_ok("Threativore Database", status="Started")
 
 # Allow local workstation run
 if cache is None:

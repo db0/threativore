@@ -1,15 +1,17 @@
-version: "3.3"
+version: "3.8"
+
 services:
-  automod:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  threativore:
+    image: ghcr.io/db0/threativore:latest
+    hostname: "threativore"
+    user: 991:991
+    # See .env_template for description of each variable
     environment:
-      - LEMMY_DOMAIN=<<yourlemmydomain.foo >>
-      - LEMMY_USERNAME=<<Your Bot's Username (created within Lemmy)>>
-      - LEMMY_PASSWORD=<<Your Bot's Password (created within Lemmy)>>
+      - LEMMY_DOMAIN=${LEMMY_DOMAIN}
+      - LEMMY_USERNAME=${LEMMY_USERNAME}
+      - LEMMY_PASSWORD=${LEMMY_PASSWORD}
       - USE_SQLITE=1
-      - THREATIVORE_ADMIN_URL=<<Full URL to your own admin profile, such as lemmy.foo/u/yourusername>>
-    restart: always
+      - THREATIVORE_ADMIN_URL=${THREATIVORE_ADMIN_URL}
+    restart: unless-stopped
     volumes:
       - /path/to/volume:./volumes
