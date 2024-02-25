@@ -13,5 +13,6 @@ services:
       - USE_SQLITE=1
       - THREATIVORE_ADMIN_URL=${THREATIVORE_ADMIN_URL}
     restart: unless-stopped
+    # Ensure ./path/to/threativore exists
     volumes:
-      - /path/to/volume:./volumes
+      - ./path/to/threativore:/app/instance:Z
