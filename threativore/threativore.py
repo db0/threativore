@@ -17,6 +17,7 @@ from threativore.orm.user import User
 from pythorhead.types.sort import CommentSortType
 from threativore.argparser import args
 
+from threativore.webhooks import webhook_parser
 
 class Threativore:
     def __init__(self, _base_lemmy):
@@ -79,6 +80,7 @@ class Threativore:
                     matching_content = report["creator"]["name"]
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
+                    webhook_parser("Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
                         logger.warning("Would remove comment from report")
                         if item_type == "comment":
@@ -112,6 +114,7 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
                             logger.info(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
+                            webhook_parser(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
@@ -122,7 +125,7 @@ class Threativore:
             seen_report = Seen(
                 entity_id=report_id,
                 entity_type=EntityType.REPORT,
-                entity_url=report["comment"]["ap_id"],
+                entity_url=report[item_type]["ap_id"],
             )
             db.session.add(seen_report)
             db.session.commit()
@@ -178,6 +181,7 @@ class Threativore:
                 # logger.info([comment["comment"]["content"], f.regex])
                 if filter_match:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
+                    webhook_parser(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
                     # Comments
                     if not database.filter_match_exists(comment_id):
                         new_match = FilterMatch(
@@ -218,6 +222,7 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
+                            webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
@@ -301,6 +306,7 @@ class Threativore:
                 # logger.info([comment["comment"]["content"], f.regex])
                 if matched_filter:
                     logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
+                    webhook_parser(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
                     if not database.filter_match_exists(post_id):
                         new_match = FilterMatch(
                             actor_id=user_url,
@@ -338,6 +344,7 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
+                            webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
