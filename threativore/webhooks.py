@@ -27,7 +27,7 @@ def post_discord_webhook(url: str, message:str, username:str, avatar_url:str) ->
         return True
     else:
         return False
-    
+
 def post_slack_webhook(url: str, message: str) -> bool:
     payload = {
         "text": message
