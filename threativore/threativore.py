@@ -71,9 +71,18 @@ class Threativore:
                 matching_string = ""
                 matching_content = ""
                 if tfilter.filter_type == FilterType.REPORT:
-                    filter_match = re.search(tfilter.regex, report[f"{item_type}"]["content"], re.IGNORECASE)
-                    matching_string = f'{item_type} body: {report[f"{item_type}"]["content"]}'
-                    matching_content = report[f"{item_type}"]["content"]
+                    if item_type == "comment":
+                        filter_match = re.search(tfilter.regex, report[f"{item_type}"]["content"], re.IGNORECASE)
+                        matching_string = f'{item_type} content: {report[f"{item_type}"]["content"]}'
+                        matching_content = report[f"{item_type}"]["content"]
+                    elif item_type == "post":
+                        filter_match = re.search(tfilter.regex, report[f"{item_type}"]["name"], re.IGNORECASE)
+                        matching_string = f'{item_type} name: {report[f"{item_type}"]["name"]}'
+                        matching_content = report[f"{item_type}"]["name"]
+                    elif "body" in report[f"{item_type}"]:
+                        filter_match = re.search(tfilter.regex, report[f"{item_type}"]["body"], re.IGNORECASE)
+                        matching_string = f'{item_type} body: {report[f"{item_type}"]["body"]}'
+                        matching_content = report[f"{item_type}"]["body"]
                 if tfilter.filter_type == FilterType.USERNAME:
                     filter_match = re.search(tfilter.regex, report["creator"]["name"], re.IGNORECASE)
                     matching_string = f'{item_type} username: {report["creator"]["name"]}'
