@@ -94,10 +94,8 @@ class ThreativoreFilters:
         user_url = pm["creator"]["actor_id"].lower()
         requesting_user = database.get_user(user_url)
         if not requesting_user:
-            logger.debug(user_url)
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         if not requesting_user.can_do_filters():
-            logger.debug(requesting_user.roles)
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         # logger.info(pm['private_message']['content'])
         filter_type = FilterType[filter_search.group(2).upper()]
@@ -171,7 +169,7 @@ class ThreativoreFilters:
                     ),
                 )
         if filter_method == "remove":
-            self.remove_filter(filter=filter_regex)
+            self.remove_filter(filter=filter_regex,user_url=user_url)
             self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Filter has been succesfully remmoved:\n\n\n" "---\n" f"* regex: `{filter_regex}`"),
