@@ -32,7 +32,7 @@ class Threativore:
     @logger.catch(reraise=True)
     def ensure_admin_exists(self):
         with APP.app_context():
-            admin_user_url = os.getenv("THREATIVORE_ADMIN_URL")
+            admin_user_url = os.getenv("THREATIVORE_ADMIN_URL").lower()
             if not admin_user_url:
                 raise e.ThreativoreException("THREATIVORE_ADMIN_URL env not set")
             admin = database.get_user(admin_user_url)
