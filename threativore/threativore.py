@@ -70,7 +70,7 @@ class Threativore:
                     break
                 matching_string = ""
                 matching_content = ""
-                if tfilter.filter_type == FilterType.REPORT:
+                if tfilter.filter_type in [FilterType.REPORT,FilterType.COMMENT]:
                     actor_id = report[f'{item_type}_creator']['actor_id']
                     if item_type == "comment":
                         filter_match = re.search(tfilter.regex, report[f"{item_type}"]["content"], re.IGNORECASE)

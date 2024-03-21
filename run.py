@@ -16,5 +16,6 @@ if __name__ == "__main__":
                 threativore.gc()
                 time.sleep(5)
             except Exception as err:
+                raise err
                 logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
                 time.sleep(1)
