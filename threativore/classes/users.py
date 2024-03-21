@@ -51,7 +51,7 @@ class ThreativoreUsers:
 
     def parse_user_pm(self, user_search, pm):
         # logger.info(pm['private_message']['content'])
-        requesting_user = database.get_user(pm["creator"]["actor_id"])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
         if not requesting_user:
             raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
         user_method = user_search.group(1).lower()
