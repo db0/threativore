@@ -192,7 +192,7 @@ class ThreativoreFilters:
             )
 
     def parse_filter_list_pm(self, filter_search, pm):
-        requesting_user = database.get_user(pm["creator"]["actor_id"])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
         if not requesting_user:
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         if not requesting_user.can_do_filters():
