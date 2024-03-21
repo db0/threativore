@@ -108,7 +108,7 @@ class ThreativoreFilters:
             if filter_description_search:
                 filter_description = filter_description_search.group(1).strip()
             fa_values = "|".join([e.name for e in FilterAction])
-            filter_action_search = re.search(rf"action: ?({fa_values})", pm["private_message"]["content"], re.IGNORECASE)
+            filter_action_search = re.search(rf"action: ?`({fa_values})`", pm["private_message"]["content"], re.IGNORECASE)
             filter_action = None
             if filter_action_search:
                 filter_action = FilterAction[filter_action_search.group(1).upper()]

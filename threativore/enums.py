@@ -17,6 +17,7 @@ class FilterAction(enum.Enum):
     BAN7 = 2
     REPORT = 3
     REMOVE = 4
+    REMBAN = 5
 
 
 class FilterType(enum.Enum):

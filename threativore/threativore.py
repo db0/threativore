@@ -71,6 +71,7 @@ class Threativore:
                 matching_string = ""
                 matching_content = ""
                 if tfilter.filter_type == FilterType.REPORT:
+                    actor_id = report[f'{item_type}_creator']['actor_id']
                     if item_type == "comment":
                         filter_match = re.search(tfilter.regex, report[f"{item_type}"]["content"], re.IGNORECASE)
                         matching_string = f'{item_type} content: {report[f"{item_type}"]["content"]}'
@@ -88,8 +89,8 @@ class Threativore:
                     matching_string = f'{item_type} username: {report["creator"]["name"]}'
                     matching_content = report["creator"]["name"]
                 if filter_match:
-                    logger.info(f"Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
-                    webhook_parser("Matched anti-spam filter for reported {matching_string} " f"regex: {filter_match}")
+                    logger.info(f"Matched anti-spam filter from {actor_id} for reported {matching_string[0:50]}... " f"regex: {filter_match}")
+                    webhook_parser(f"Matched anti-spam filter from {actor_id} for reported {matching_string[0:50]}... " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
                         logger.warning("Would remove comment from report")
                         if item_type == "comment":
@@ -116,19 +117,23 @@ class Threativore:
                             )
                             db.session.add(new_match)
                             db.session.commit()
-                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
+                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
+                            remove_all=False
+                            if tfilter.filter_action == FilterAction.REMBAN:
+                                remove_all=True
                             logger.info(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
                             webhook_parser(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
                                 person_id=report[f"{item_type}_creator"]["id"],
-                                reason=f"Threativore automatic ban from {item_type} report: {tfilter.reason}"
+                                reason=f"Threativore automatic ban from {item_type} report: {tfilter.reason}",
+                                remove_data=remove_all,
                             )
                             entity_banned = True
             seen_report = Seen(
@@ -189,8 +194,8 @@ class Threativore:
                     matching_content = comment["creator"]["name"]
                 # logger.info([comment["comment"]["content"], f.regex])
                 if filter_match:
-                    logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
-                    webhook_parser(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
+                    logger.info(f"Matched anti-spam filter from {user_url} for {matching_string[0:50]}... " f"regex: {filter_match}")
+                    webhook_parser(f"Matched anti-spam filter from {user_url} for {matching_string[0:50]}... " f"regex: {filter_match}")
                     # Comments
                     if not database.filter_match_exists(comment_id):
                         new_match = FilterMatch(
@@ -224,19 +229,23 @@ class Threativore:
                             reason=f"Threativore automatic comment removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
+                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
+                            remove_all=False
+                            if tfilter.filter_action == FilterAction.REMBAN:
+                                remove_all=True
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
                             webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
                                 person_id=comment["creator"]["id"],
-                                reason=f"Threativore automatic ban from post: {tfilter.reason}"
+                                reason=f"Threativore automatic ban from post: {tfilter.reason}",
+                                remove_data=remove_all,
                             )
                             entity_banned = True
             seen_comment = Seen(
@@ -314,8 +323,8 @@ class Threativore:
                         matching_content = post["creator"]["name"]
                 # logger.info([comment["comment"]["content"], f.regex])
                 if matched_filter:
-                    logger.info(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
-                    webhook_parser(f"Matched anti-spam filter for {matching_string} " f"regex: {filter_match}")
+                    logger.info(f"Matched anti-spam filter from {user_url} for {matching_string[0:50]}... " f"regex: {filter_match}")
+                    webhook_parser(f"Matched anti-spam filter from {user_url} for {matching_string[0:50]}... " f"regex: {filter_match}")
                     if not database.filter_match_exists(post_id):
                         new_match = FilterMatch(
                             actor_id=user_url,
@@ -346,19 +355,23 @@ class Threativore:
                             reason=f"Threativore automatic post removal: {tfilter.reason}",
                         )
                         entity_removed = True
-                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.BAN30,FilterAction.BAN7]:
+                        if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
                                 expires = datetime.utcnow() + timedelta(days=30)
                             if tfilter.filter_action == FilterAction.BAN7:
                                 expires = datetime.utcnow() + timedelta(days=7)
+                            remove_all=False
+                            if tfilter.filter_action == FilterAction.REMBAN:
+                                remove_all=True
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
                             webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
                             self.lemmy.user.ban(
                                 ban=True,
                                 expires=expires,
                                 person_id=post["creator"]["id"],
-                                reason=f"Threativore automatic ban from report: {tfilter.reason}"
+                                reason=f"Threativore automatic ban from report: {tfilter.reason}",
+                                remove_data=remove_all,
                             )
                             entity_banned = True
 

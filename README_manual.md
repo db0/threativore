@@ -32,6 +32,7 @@ The various fields are:
    * BAN7: Remove and Ban for 7 days
    * BAN30: Remove and Ban for 30 days
    * PERMABAN: Remove and Ban forever
+   * REMBAN: Remove and Ban forever and delete all existing comments
    * REPORT: Automatically report the comment/post
 * description: internal description for the filter to be used by admin collaboration.
 
