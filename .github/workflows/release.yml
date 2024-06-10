@@ -62,7 +62,8 @@ jobs:
     - name: "Build and Publish Container to Github Container Registry"
       if: ${{ steps.release.outputs.version != '' }}
       run: |
-        docker build -t ghcr.io/db0/threativore:${{ steps.release.outputs.version }} . --label "org.opencontainers.image.source=https://github.com/db0/threativore" --label "org.opencontainers.image.licenses=AGPL3" .
+        docker build -t ghcr.io/db0/threativore:${{ steps.release.outputs.version }} --label "org.opencontainers.image.source=https://github.com/db0/threativore" --label "org.opencontainers.image.licenses=AGPL3" .
         docker push ghcr.io/db0/threativore:${{ steps.release.outputs.version }}
         docker tag ghcr.io/db0/threativore:${{ steps.release.outputs.version }} ghcr.io/db0/threativore:latest
         docker push ghcr.io/db0/threativore:latest
+
