@@ -12,6 +12,8 @@ services:
       - LEMMY_PASSWORD=${LEMMY_PASSWORD}
       - USE_SQLITE=1
       - THREATIVORE_ADMIN_URL=${THREATIVORE_ADMIN_URL}
+      ## Set the below from 1-3 to see more logs
+      # - THREATIVORE_VERBOSITY=3
     restart: unless-stopped
     # Ensure ./path/to/threativore exists
     volumes:
