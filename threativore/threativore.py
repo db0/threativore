@@ -1,4 +1,4 @@
-import os
+from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -8,23 +8,30 @@ from loguru import logger
 import threativore.database as database
 import threativore.exceptions as e
 from threativore.classes.filters import ThreativoreFilters
+from threativore.classes.appeals import ThreativoreAppeals
 from threativore.classes.users import ThreativoreUsers
 from threativore.enums import EntityType, FilterAction, FilterType, UserRoleTypes
 from threativore.flask import APP, db
-from threativore.orm.filters import FilterMatch
+from threativore.orm.filters import FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User
 from pythorhead.types.sort import CommentSortType
 from threativore.argparser import args
+from threativore.config import Config
 
 from threativore.webhooks import webhook_parser
 
 class Threativore:
+
+    appeal_admins: list = []    
+
     def __init__(self, _base_lemmy):
         self.lemmy = _base_lemmy.lemmy
         self.filters = ThreativoreFilters(self)
         self.users = ThreativoreUsers(self)
+        self.appeals = ThreativoreAppeals(self)
         self.ensure_admin_exists()
+        self.prepare_appeal_objects()
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         pass
@@ -32,7 +39,7 @@ class Threativore:
     @logger.catch(reraise=True)
     def ensure_admin_exists(self):
         with APP.app_context():
-            admin_user_url = os.getenv("THREATIVORE_ADMIN_URL").lower()
+            admin_user_url = Config.threativore_admin_url.lower()
             if not admin_user_url:
                 raise e.ThreativoreException("THREATIVORE_ADMIN_URL env not set")
             admin = database.get_user(admin_user_url)
@@ -41,6 +48,14 @@ class Threativore:
                 db.session.add(admin)
                 db.session.commit()
             admin.add_role(UserRoleTypes.ADMIN)
+
+    def prepare_appeal_objects(self):
+        for admin_username in Config.threativore_appeal_urls:
+            admin_account = self.lemmy.get_user(username=admin_username)
+            if admin_account is None:
+                logger.warning(f"Cannot discover appeal admin account {admin_username}.")
+                continue
+            self.appeal_admins.append(admin_account)
 
     def resolve_reports(self):
         logger.debug("Checking Reports...")
@@ -58,8 +73,10 @@ class Threativore:
         for report in rl:
             if "comment_report" in report.keys():
                 item_type = "comment"
+                target_type_enum = EntityType.COMMENT
             else:
                 item_type = "post"
+                target_type_enum = EntityType.POST
             entity_removed = False
             entity_banned = False
             report_id: int = report[f"{item_type}_report"]["id"]
@@ -92,24 +109,11 @@ class Threativore:
                     logger.info(f"Matched anti-spam filter from {actor_id} for reported {matching_string[0:50]}... " f"regex: {filter_match}")
                     webhook_parser(f"Matched anti-spam filter from {actor_id} for reported {matching_string[0:50]}... " f"regex: {filter_match}")
                     if tfilter.filter_action != FilterAction.REPORT:
-                        logger.warning("Would remove comment from report")
-                        if item_type == "comment":
-                            self.lemmy.comment.remove(
-                                comment_id=report["comment"]["id"],
-                                removed=True,
-                                reason=f"Threativore automatic comment removal: {tfilter.reason}",
-                            )
-                        else:
-                            self.lemmy.post.remove(
-                                post_id=report["post"]["id"],
-                                removed=True,
-                                reason=f"Threativore automatic post removal: {tfilter.reason}",
-                            )
-                        entity_removed = True
                         if not database.filter_match_exists(report[f"{item_type}"]["id"]):
                             new_match = FilterMatch(
                                 actor_id=report[f"{item_type}_creator"]["actor_id"],
                                 entity_id=report[f"{item_type}"]["id"],
+                                entity_type=target_type_enum,
                                 report_id=report_id,
                                 url=report[f"{item_type}"]["ap_id"],
                                 content=matching_content,
@@ -117,6 +121,26 @@ class Threativore:
                             )
                             db.session.add(new_match)
                             db.session.commit()
+                        # logger.warning("Would remove comment from report")
+                        if item_type == "comment":
+                            self.lemmy.comment.remove(
+                                comment_id=report["comment"]["id"],
+                                removed=True,
+                                reason=(
+                                    f"Threativore automatic comment removal from report: {tfilter.reason}",
+                                    f"Appeal by sending a PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                                ),
+                            )
+                        else:
+                            self.lemmy.post.remove(
+                                post_id=report["post"]["id"],
+                                removed=True,
+                                reason=(
+                                    f"Threativore automatic post removal from report: {tfilter.reason}",
+                                    f"Appeal by sending a PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                                ),
+                            )
+                        entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
                             if tfilter.filter_action == FilterAction.BAN30:
@@ -132,7 +156,10 @@ class Threativore:
                                 ban=True,
                                 expires=expires,
                                 person_id=report[f"{item_type}_creator"]["id"],
-                                reason=f"Threativore automatic ban from {item_type} report: {tfilter.reason}",
+                                reason=(
+                                    f"Threativore automatic ban from {item_type} report: {tfilter.reason}.\n\n",
+                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                                ),
                                 remove_data=remove_all,
                             )
                             entity_banned = True
@@ -201,6 +228,7 @@ class Threativore:
                         new_match = FilterMatch(
                             actor_id=user_url,
                             entity_id=comment_id,
+                            entity_type=EntityType.COMMENT,
                             url=comment["comment"]["ap_id"],
                             content=matching_content,
                             filter_id=tfilter.id,
@@ -210,7 +238,7 @@ class Threativore:
                     if tfilter.filter_action == FilterAction.REPORT:
                         self.lemmy.comment.report(
                             comment_id=comment_id,
-                            reason=f"Threativore automatic comment: {tfilter.reason}",
+                            reason=f"Threativore automatic comment report: {tfilter.reason}"
                         )
                         entity_reported = True
                     else:
@@ -226,7 +254,10 @@ class Threativore:
                         self.lemmy.comment.remove(
                             comment_id=comment_id,
                             removed=True,
-                            reason=f"Threativore automatic comment removal: {tfilter.reason}",
+                            reason=(
+                                f"Threativore automatic comment removal: {tfilter.reason}",
+                                f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                            ),
                         )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
@@ -244,7 +275,10 @@ class Threativore:
                                 ban=True,
                                 expires=expires,
                                 person_id=comment["creator"]["id"],
-                                reason=f"Threativore automatic ban from post: {tfilter.reason}",
+                                reason=(
+                                    f"Threativore automatic ban from comment: {tfilter.reason}",
+                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                                ),
                                 remove_data=remove_all,
                             )
                             entity_banned = True
@@ -329,6 +363,7 @@ class Threativore:
                         new_match = FilterMatch(
                             actor_id=user_url,
                             entity_id=post_id,
+                            entity_type=EntityType.POST,
                             url=post["post"]["ap_id"],
                             content=matching_content,
                             filter_id=tfilter.id,
@@ -352,7 +387,10 @@ class Threativore:
                         self.lemmy.post.remove(
                             post_id=post_id,
                             removed=True,
-                            reason=f"Threativore automatic post removal: {tfilter.reason}",
+                            reason=(
+                                f"Threativore automatic post removal: {tfilter.reason}",
+                                f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                            ),
                         )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
@@ -370,7 +408,10 @@ class Threativore:
                                 ban=True,
                                 expires=expires,
                                 person_id=post["creator"]["id"],
-                                reason=f"Threativore automatic ban from report: {tfilter.reason}",
+                                reason=(
+                                    f"Threativore automatic ban from report: {tfilter.reason}",
+                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
+                                ),
                                 remove_data=remove_all,
                             )
                             entity_banned = True
@@ -412,6 +453,20 @@ class Threativore:
                 user_search = re.search(r"(add|remove) user: ?(.+)[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
                 if user_search:
                     self.users.parse_user_pm(user_search, pm)
+                request_appeal_search = re.search(
+                    r"request appeal:? ?(\d+)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if request_appeal_search:
+                    self.appeals.parse_appeal_request(request_appeal_search, pm)
+                restore_appeal_search = re.search(
+                    r"appeal (reject|ignore):? ?(\d+)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if request_appeal_search:
+                    self.appeals.parse_appeal_restore(restore_appeal_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
@@ -422,11 +477,14 @@ class Threativore:
                 logger.error(err)
 
     def reply_to_pm(self, pm, message):
+        self.reply_to_user_id(pm["private_message"]["creator_id"],message)
+        self.lemmy.private_message.mark_as_read(pm["private_message"]["id"], True)
+
+    def reply_to_user_id(self, user_id, message):
         self.lemmy.private_message.create(
-            recipient_id=pm["private_message"]["creator_id"],
+            recipient_id=user_id,
             content=message,
         )
-        self.lemmy.private_message.mark_as_read(pm["private_message"]["id"], True)
 
     def gc(self):
         rows_deleted = database.delete_seen_rows(args.gc_days)

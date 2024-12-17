@@ -41,6 +41,7 @@ class User(db.Model):
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
+    filter_appeals_resolved = db.relationship("FilterAppeals", back_populates="resolver")
 
     def add_role(self, role: UserRoleTypes) -> None:
         if not isinstance(role, UserRoleTypes):
@@ -85,6 +86,9 @@ class User(db.Model):
 
     def is_moderator(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR)
+
+    def is_muted(self) -> bool:
+        return self.has_role(UserRoleTypes.MUTED)
 
     def can_do_filters(self) -> bool:
         return self.is_moderator()

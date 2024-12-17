@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from threativore.enums import EntityType, FilterType
-from threativore.orm.filters import Filter, FilterMatch
+from threativore.orm.filters import Filter, FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User, UserRole
 from threativore.flask import db
@@ -24,6 +24,14 @@ def does_filter_exist(filter_regex: str) -> bool:
 def get_filter(filter_regex: str) -> Filter:
     return Filter.query.filter_by(regex=filter_regex).first()
 
+def find_appeal_by_user(creator_id: int, filter_match_id: int) -> FilterAppeal:
+    return FilterAppeal.query.filter(
+        FilterAppeal.filter_match_id == filter_match_id,
+        FilterAppeal.creator_id == creator_id,
+    ).first()
+
+def get_appeal(appeal_id: int) -> FilterAppeal:
+    return FilterAppeal.query.filter_by(id=appeal_id).first()
 
 def get_user(user_url: str) -> User:
     return User.query.filter_by(user_url=user_url).first()
@@ -58,6 +66,9 @@ def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
 
 def filter_match_exists(entity_id: int) -> bool:
     return FilterMatch.query.filter_by(entity_id=entity_id).count() == 1
+
+def get_filter_match(filter_match_id: int) -> FilterMatch | None:
+    return FilterMatch.query.filter_by(entity_id=filter_match_id).first()
 
 def delete_seen_rows(days_older_than:int=7):
     return Seen.query.filter(

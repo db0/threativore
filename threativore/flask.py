@@ -1,22 +1,21 @@
-import os
-
 from flask import Flask
 from flask_caching import Cache
 from flask_sqlalchemy import SQLAlchemy
 from loguru import logger
 from werkzeug.middleware.proxy_fix import ProxyFix
+from threativore.config import Config
 
 cache = None
 APP = Flask(__name__)
 APP.wsgi_app = ProxyFix(APP.wsgi_app, x_for=1)
 
-SQLITE_MODE = os.getenv("USE_SQLITE", "1") == "1"
+SQLITE_MODE = Config.use_sqlite
 
 if SQLITE_MODE:
     logger.warning("Using SQLite for database")
-    APP.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///threativore.db"
+    APP.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{Config.sqlite_filename}"
 else:
-    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}:{os.getenv('POSTGRES_PASS')}@{os.getenv('POSTGRES_URL')}"
+    APP.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{Config.postgres_user}:{Config.postgres_pass}@{Config.postgres_url}"
     APP.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_size": 50,
         "max_overflow": -1,
