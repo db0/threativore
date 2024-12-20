@@ -50,7 +50,7 @@ class Threativore:
             admin.add_role(UserRoleTypes.ADMIN)
 
     def prepare_appeal_objects(self):
-        for admin_username in Config.threativore_appeal_urls:
+        for admin_username in Config.threativore_appeal_usernames:
             admin_account = self.lemmy.get_user(username=admin_username)
             if admin_account is None:
                 logger.warning(f"Cannot discover appeal admin account {admin_username}.")
@@ -122,24 +122,27 @@ class Threativore:
                             db.session.add(new_match)
                             db.session.commit()
                         # logger.warning("Would remove comment from report")
-                        if item_type == "comment":
-                            self.lemmy.comment.remove(
-                                comment_id=report["comment"]["id"],
-                                removed=True,
-                                reason=(
-                                    f"Threativore automatic comment removal from report: {tfilter.reason}",
-                                    f"Appeal by sending a PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                                ),
-                            )
-                        else:
-                            self.lemmy.post.remove(
-                                post_id=report["post"]["id"],
-                                removed=True,
-                                reason=(
-                                    f"Threativore automatic post removal from report: {tfilter.reason}",
-                                    f"Appeal by sending a PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                                ),
-                            )
+                        if not Config.dry_run:
+                            if item_type == "comment":
+                                self.lemmy.comment.remove(
+                                    comment_id=report["comment"]["id"],
+                                    removed=True,
+                                    reason=(
+                                        f"Threativore automatic comment removal from report: {tfilter.reason}\n\n"
+                                        f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                        f"and including the text: `threativore request appeal {new_match.id}`"
+                                    ),
+                                )
+                            else:
+                                self.lemmy.post.remove(
+                                    post_id=report["post"]["id"],
+                                    removed=True,
+                                    reason=(
+                                        f"Threativore automatic post removal from report: {tfilter.reason}\n\n"
+                                        f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                        f"and including the text: `threativore request appeal {new_match.id}`"
+                                    ),
+                                )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
@@ -151,17 +154,19 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.REMBAN:
                                 remove_all=True
                             logger.info(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
-                            webhook_parser(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
-                            self.lemmy.user.ban(
-                                ban=True,
-                                expires=expires,
-                                person_id=report[f"{item_type}_creator"]["id"],
-                                reason=(
-                                    f"Threativore automatic ban from {item_type} report: {tfilter.reason}.\n\n",
-                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                                ),
-                                remove_data=remove_all,
-                            )
+                            if not Config.dry_run:
+                                webhook_parser(f"Banned {report[f'{item_type}_creator']['actor_id']} for {tfilter.filter_action.name}")
+                                self.lemmy.user.ban(
+                                    ban=True,
+                                    expires=expires,
+                                    person_id=report[f"{item_type}_creator"]["id"],
+                                    reason=(
+                                        f"Threativore automatic ban from {item_type} report: {tfilter.reason}.\n\n"
+                                        f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                        f"and including the text: `threativore request appeal {new_match.id}`"
+                                    ),
+                                    remove_data=remove_all,
+                                )
                             entity_banned = True
             seen_report = Seen(
                 entity_id=report_id,
@@ -196,8 +201,8 @@ class Threativore:
             entity_reported = False
             entity_banned = False
             comment_id: int = comment["comment"]["id"]
-            if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/Flatworm7591":
-                logger.debug(comment["comment"]["content"])
+            if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0":
+                logger.debug(f'Found comment from bot: {comment["comment"]["content"]}')
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
             user_url = comment["creator"]["actor_id"]
@@ -250,15 +255,16 @@ class Threativore:
                         #     reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         # )
                         # entity_reported = True
-
-                        self.lemmy.comment.remove(
-                            comment_id=comment_id,
-                            removed=True,
-                            reason=(
-                                f"Threativore automatic comment removal: {tfilter.reason}",
-                                f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                            ),
-                        )
+                        if not Config.dry_run:
+                            self.lemmy.comment.remove(
+                                comment_id=comment_id,
+                                removed=True,
+                                reason=(
+                                    f"Threativore automatic comment removal: {tfilter.reason}\n\n"
+                                    f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                    f"and including the text: `threativore request appeal {new_match.id}`"
+                                ),
+                            )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
@@ -270,18 +276,22 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.REMBAN:
                                 remove_all=True
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
-                            webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
-                            self.lemmy.user.ban(
-                                ban=True,
-                                expires=expires,
-                                person_id=comment["creator"]["id"],
-                                reason=(
-                                    f"Threativore automatic ban from comment: {tfilter.reason}",
-                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                                ),
-                                remove_data=remove_all,
-                            )
+                            if not Config.dry_run:
+                                webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
+                                self.lemmy.user.ban(
+                                    ban=True,
+                                    expires=expires,
+                                    person_id=comment["creator"]["id"],
+                                    reason=(
+                                        f"Threativore automatic ban from comment: {tfilter.reason}\n\n"
+                                        f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                        f"and including the text: `threativore request appeal {new_match.id}`"
+                                    ),
+                                    remove_data=remove_all,
+                                )
                             entity_banned = True
+            # if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0": #DEBUG
+            #     return (seen_any_previously,all_ids)
             seen_comment = Seen(
                 entity_id=comment_id,
                 entity_type=EntityType.COMMENT,
@@ -384,14 +394,16 @@ class Threativore:
                         #     reason=f"Threativore automatic beta testing report: {tfilter.reason}",
                         # )
                         entity_reported = True
-                        self.lemmy.post.remove(
-                            post_id=post_id,
-                            removed=True,
-                            reason=(
-                                f"Threativore automatic post removal: {tfilter.reason}",
-                                f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                            ),
-                        )
+                        if not Config.dry_run:
+                            self.lemmy.post.remove(
+                                post_id=post_id,
+                                removed=True,
+                                reason=(
+                                    f"Threativore automatic post removal: {tfilter.reason}\n\n"
+                                    f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                    f"and including the text: `threativore request appeal {new_match.id}`"
+                                ),
+                            )
                         entity_removed = True
                         if not entity_banned and tfilter.filter_action in [FilterAction.PERMABAN,FilterAction.REMBAN,FilterAction.BAN30,FilterAction.BAN7]:
                             expires = None
@@ -403,17 +415,19 @@ class Threativore:
                             if tfilter.filter_action == FilterAction.REMBAN:
                                 remove_all=True
                             logger.info(f"Banned {user_url} for {tfilter.filter_action.name}")
-                            webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
-                            self.lemmy.user.ban(
-                                ban=True,
-                                expires=expires,
-                                person_id=post["creator"]["id"],
-                                reason=(
-                                    f"Threativore automatic ban from report: {tfilter.reason}",
-                                    f"Appeal by sending PM with your reasoning and including the text: `threativore request appeal {new_match.id}`",
-                                ),
-                                remove_data=remove_all,
-                            )
+                            if not Config.dry_run:
+                                webhook_parser(f"Banned {user_url} for {tfilter.filter_action.name}")
+                                self.lemmy.user.ban(
+                                    ban=True,
+                                    expires=expires,
+                                    person_id=post["creator"]["id"],
+                                    reason=(
+                                        f"Threativore automatic ban from report: {tfilter.reason}\n\n"
+                                        f"Appeal by sending PM with your reasoning to @{Config.lemmy_username}@{Config.lemmy_domain}, "
+                                        f"and including the text: `threativore request appeal {new_match.id}`"
+                                    ),
+                                    remove_data=remove_all,
+                                )
                             entity_banned = True
 
             seen_post = Seen(
@@ -461,12 +475,19 @@ class Threativore:
                 if request_appeal_search:
                     self.appeals.parse_appeal_request(request_appeal_search, pm)
                 restore_appeal_search = re.search(
+                    r"appeal restore:? ?(\d+)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if restore_appeal_search:
+                    self.appeals.parse_appeal_restore(restore_appeal_search, pm)
+                reject_appeal_search = re.search(
                     r"appeal (reject|ignore):? ?(\d+)",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
-                if request_appeal_search:
-                    self.appeals.parse_appeal_restore(restore_appeal_search, pm)
+                if reject_appeal_search:
+                    self.appeals.parse_appeal_reject(reject_appeal_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,

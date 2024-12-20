@@ -9,16 +9,16 @@ import threativore.database as database
 
 # threativore()
 with APP.app_context():
-    # try:
-        # threativore.filters.add_filter(
-        #     filter='pictrs', 
-        #     user_url='https://lemmy.dbzer0.com/u/db0', 
-        #     reason="Test pictrs spam", 
-        #     filter_action=FilterAction.REPORT, 
-        #     filter_type=FilterType.URL
-        # )
-    # except Exception as err:
-    #     logger.info(err)
+    try:
+        threativore.filters.add_filter(
+            filter='Test Appeals Filter', 
+            user_url='https://lemmy.dbzer0.com/u/db0', 
+            reason="Testing", 
+            filter_action=FilterAction.REMOVE, 
+            filter_type=FilterType.COMMENT
+        )
+    except Exception as err:
+        logger.info(err)
     threativore.filters.print_all_filters()
     # print(database.actor_bypasses_filter("https://lemmy.dbzer0.com/u/randomleg"))
     # threativore.check_pms()
@@ -26,11 +26,12 @@ with APP.app_context():
     # threativore.check_comments()
     # threativore.resolve_reports()
     comment_filters = database.get_all_filters(FilterType.COMMENT)
+    comment_filters = database.get_all_filters(FilterType.REPORT)
     username_filters = database.get_all_filters(FilterType.USERNAME)
-    sorted_filters = sorted(comment_filters + username_filters, key=lambda x: x.filter_action.value)    
-    for tfilter in sorted_filters:
-        filter_match = re.search(tfilter.regex, "Buy Modvigil 200mg Tablets Online At Health Matter", re.IGNORECASE)
-        print([tfilter.regex,filter_match]) 
+    # sorted_filters = sorted(comment_filters + username_filters, key=lambda x: x.filter_action.value)    
+    # for tfilter in sorted_filters:
+    #     filter_match = re.search(tfilter.regex, "Buy Modvigil 200mg Tablets Online At Health Matter", re.IGNORECASE)
+    #     print([tfilter.regex,filter_match]) 
     pass
 
 # strting = f"\\bBuy.+mg.+Online\\b"

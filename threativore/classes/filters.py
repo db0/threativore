@@ -8,10 +8,9 @@ import threativore.exceptions as e
 from threativore.enums import FilterAction, FilterType, UserRoleTypes, AppealStatus
 from threativore.flask import db
 from threativore.orm.filters import Filter, FilterAppeal
-from threativore.threativore import Threativore
 
 class ThreativoreFilters:
-    threativore: "Threativore" = None
+    threativore = None
     
     def __init__(self, threativore):
         self.threativore = threativore

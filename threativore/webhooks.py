@@ -4,12 +4,12 @@ from threativore.config import Config
 from loguru import logger
 
 def webhook_parser(message: str):
-    if Config.discordwebhook is not None and Config.discordwebhook != "None" and Config.discordwebhook != "":
-        if not post_discord_webhook(url=Config.discordwebhook, message=message,username=None, avatar_url=None):
+    if Config.discord_webhook is not None and Config.discord_webhook != "None" and Config.discord_webhook != "":
+        if not post_discord_webhook(url=Config.discord_webhook, message=message,username=None, avatar_url=None):
             logger.debug("Discord webhook failed")
             
-    if Config.slackwebhook is not None and Config.slackwebhook != "None" and Config.slackwebhook != "":
-        if post_slack_webhook(url=Config.slackwebhook, message=message):
+    if Config.slack_webhook is not None and Config.slack_webhook != "None" and Config.slack_webhook != "":
+        if post_slack_webhook(url=Config.slack_webhook, message=message):
             logger.debug("Slack webhook failed")
 
 def post_discord_webhook(url: str, message:str, username:str, avatar_url:str) -> bool:

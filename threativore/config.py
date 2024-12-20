@@ -6,9 +6,9 @@ env.read_env()  # read .env file, if it exists
 class Config:
     lemmy_domain: str = env.str("LEMMY_DOMAIN")
     lemmy_username: str = env.str("LEMMY_USERNAME")
-    lemmy_password: str = env.str("LEMMY_USERNAME")
+    lemmy_password: str = env.str("LEMMY_PASSWORD")
     threativore_admin_url: str = env.str("THREATIVORE_ADMIN_URL")
-    threativore_appeal_urls: list = env.list("THREATIVORE_APPEAL_URLS")
+    threativore_appeal_usernames: list = env.list("THREATIVORE_APPEAL_USERNAMES")
     discord_webhook = env("DISCORDWEBHOOK", None)
     slack_webhook = env("SLACKWEBHOOK", None)
     threativore_verbosity: int = env.int("THREATIVORE_VERBOSITY", 0) 
@@ -19,3 +19,4 @@ class Config:
     postgres_user: str = env("POSTGRES_USER", "postgres")
     postgres_pass = env("POSTGRES_PASS", None)
     postgres_url = env("POSTGRES_URL", None)
+    dry_run = env.bool("DRY_RUN", False)

@@ -67,8 +67,11 @@ def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
 def filter_match_exists(entity_id: int) -> bool:
     return FilterMatch.query.filter_by(entity_id=entity_id).count() == 1
 
+def get_filter_match_by_entity(entity_id: int) -> FilterMatch | None:
+    return FilterMatch.query.filter_by(entity_id=entity_id).first()
+
 def get_filter_match(filter_match_id: int) -> FilterMatch | None:
-    return FilterMatch.query.filter_by(entity_id=filter_match_id).first()
+    return FilterMatch.query.filter_by(id=filter_match_id).first()
 
 def delete_seen_rows(days_older_than:int=7):
     return Seen.query.filter(

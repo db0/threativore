@@ -8,8 +8,9 @@ from threativore.flask import db
 
 class FilterAppeal(db.Model):
     """For storing sent appeals"""
-    __tablename__ = "filter_matches"
+    __tablename__ = "filter_appeals"
     __table_args__ = (UniqueConstraint("creator_url", "filter_match_id", name="creator_url_filter_match_id_unique"),)
+    __allow_unmapped__ = True
     
     id: int = db.Column(db.Integer, primary_key=True)
     # The ID of the PM which triggered this appeal
@@ -42,6 +43,8 @@ class FilterMatch(db.Model):
     """For storing triggered filters and the user"""
 
     __tablename__ = "filter_matches"
+    __allow_unmapped__ = True    
+
     id: int = db.Column(db.Integer, primary_key=True)
     report_id: int = db.Column(db.Integer, unique=True, nullable=True, index=True)
     entity_id: int = db.Column(db.Integer, unique=True, nullable=False, index=True)
@@ -67,6 +70,8 @@ class Filter(db.Model):
     """For storing detection regex"""
 
     __tablename__ = "filters"
+    __allow_unmapped__ = True    
+    
     id: int = db.Column(db.Integer, primary_key=True)
     regex: str = db.Column(db.Text, index=True)
     description: str = db.Column(db.Text, nullable=True)

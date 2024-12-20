@@ -41,7 +41,7 @@ class User(db.Model):
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
-    filter_appeals_resolved = db.relationship("FilterAppeals", back_populates="resolver")
+    filter_appeals_resolved = db.relationship("FilterAppeal", back_populates="resolver")
 
     def add_role(self, role: UserRoleTypes) -> None:
         if not isinstance(role, UserRoleTypes):
