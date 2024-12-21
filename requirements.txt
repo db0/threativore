@@ -1,4 +1,4 @@
-pythorhead>=0.27.0
+pythorhead>=0.27.2
 loguru
 python-dotenv
 SQLAlchemy
@@ -6,7 +6,6 @@ psycopg2-binary
 werkzeug
 regex
 environs
-python-dateutil
 
 # TODO: Add web frontend
 Flask
