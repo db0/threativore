@@ -5,6 +5,9 @@ on:
 
 jobs:
   build-publish-worker-docker:
+    permissions:
+      contents: read
+      packages: write
     name: threativore Container
     runs-on: ubuntu-latest
     steps:
