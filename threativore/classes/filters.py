@@ -5,12 +5,13 @@ from loguru import logger
 
 import threativore.database as database
 import threativore.exceptions as e
-from threativore.enums import FilterAction, FilterType, UserRoleTypes
+from threativore.enums import FilterAction, FilterType, UserRoleTypes, AppealStatus
 from threativore.flask import db
-from threativore.orm.filters import Filter
-
+from threativore.orm.filters import Filter, FilterAppeal
 
 class ThreativoreFilters:
+    threativore = None
+    
     def __init__(self, threativore):
         self.threativore = threativore
 

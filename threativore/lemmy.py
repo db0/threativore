@@ -1,15 +1,15 @@
-import os
 import threading
 import time
 from loguru import logger
 from pythorhead import Lemmy
+from threativore.config import Config
 
 
 class BaseLemmy:
     def __init__(self):
-        lemmy_domain = os.environ["LEMMY_DOMAIN"]
-        lemmy_username = os.environ["LEMMY_USERNAME"]
-        lemmy_password = os.environ["LEMMY_PASSWORD"]
+        lemmy_domain = Config.lemmy_domain
+        lemmy_username = Config.lemmy_username
+        lemmy_password = Config.lemmy_password
         self.lemmy = Lemmy(f"https://{lemmy_domain}")
         self.lemmy.log_in(lemmy_username, lemmy_password)
         self.login_refresh_thread = threading.Thread(target=self.ensure_fresh_login, args=(), daemon=True)

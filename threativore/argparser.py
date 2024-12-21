@@ -1,19 +1,19 @@
-import os
 import argparse
+from threativore.config import Config
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument(
     "-v",
     "--verbosity",
     action="count",
-    default=int(os.getenv("THREATIVORE_VERBOSITY",0)),
+    default=Config.threativore_verbosity,
     help="The default logging level is ERROR or higher. This value increases the amount of logging seen in your screen",
 )
 arg_parser.add_argument(
     "-q",
     "--quiet",
     action="count",
-    default=int(os.getenv("THREATIVORE_QUIET",0)),
+    default=Config.threativore_quiet,
     help="The default logging level is ERROR or higher. This value decreases the amount of logging seen in your screen",
 )
 arg_parser.add_argument(

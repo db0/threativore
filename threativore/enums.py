@@ -31,3 +31,8 @@ class EntityType(enum.Enum):
     COMMENT = 0
     POST = 1
     REPORT = 2
+
+class AppealStatus(enum.Enum):
+    PENDING = 0
+    RESTORED = 1
+    REJECTED = 2

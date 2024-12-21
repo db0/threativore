@@ -40,8 +40,9 @@ Modify your existing `docker-compose.yml` and add threativore as another contain
       - LEMMY_DOMAIN=<<yourlemmydomain.foo >>
       - LEMMY_USERNAME=<<Your Bot's Username (created within Lemmy)>>
       - LEMMY_PASSWORD=<<Your Bot's Password (created within Lemmy)>>
-      - USE_SQLITE=0
-      - THREATIVORE_ADMIN_URL=<<Full URL to your own admin profile, such as lemmy.foo/u/yourusername>>
+      - USE_SQLITE=1
+      - THREATIVORE_ADMIN_URL=<<Full URL to your own admin profile, such as yourlemmydomain.foo/u/yourusername>>
+      - THREATIVORE_APPEAL_USERNAMES=<<comma-separated full handle to admin profile which, should receive appeals. Such as yourusername@yourlemmydomain.foo>>
       - POSTGRES_USER=<<postgres username>>
       - POSTGRES_URL=<<postgres url>>
       - POSTGRES_PASS=<<postgres password>>

@@ -1,13 +1,16 @@
-pythorhead>=0.25.0
+pythorhead>=0.27.3
 loguru
 python-dotenv
 SQLAlchemy
 psycopg2-binary
 werkzeug
+regex
+environs
+
+# TODO: Add web frontend
 Flask
 flask-restx
 flask_limiter
 Flask-Caching
 waitress
 flask_sqlalchemy
-regex
