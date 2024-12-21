@@ -126,3 +126,12 @@ threativore remove user: https://lemmy.dbzer0.com/u/db0
 ```
 
 If you do not pass a role name, it will remove all roles you are allowed to remove from that user
+
+### Appeals
+
+For appeals to work, you need to do one of two things
+
+1. Populate `THREATIVORE_APPEAL_USERNAMES` with a comma-separated value of admin handles, such as `db0@lemmy.dbzer0.com`. These will receive a PM with any appeal requests sent to the threativore and the messages you can use to handle them.
+1. Populate `DISCORDWEBHOOK` and/or `SLACKWEBHOOK`. These webhooks will also receive a message with the appeal instructions.
+
+Only people set as threativore mods can resolve appeal requests.

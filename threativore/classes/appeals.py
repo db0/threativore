@@ -8,6 +8,7 @@ import threativore.exceptions as e
 from threativore.enums import FilterAction, FilterType, UserRoleTypes, AppealStatus, EntityType
 from threativore.flask import db
 from threativore.orm.filters import Filter, FilterAppeal
+from threativore.webhooks import webhook_parser
 
 class ThreativoreAppeals:
     threativore = None
@@ -155,21 +156,22 @@ class ThreativoreAppeals:
             )
         db.session.add(new_appeal)
         db.session.commit()
+        appeal_msg = (
+            f"Threativore appeal has been lodged by {new_appeal.creator_url} "
+            f"for action {new_appeal.filter_match_id} caused by regex `{filter_match.filter.regex}`.\n\n"
+            f"reply with `threativore appeal restore {new_appeal.id}` to restore the item filtered, "
+            f"reply with `threativore appeal reject {new_appeal.id}` to reject the appeal "
+            "**and send your PM as the reason to the originating user**, "
+            f"or reply with `threativore appeal ignore {new_appeal.id}` to simply mark the appeal as resolved.\n\n"
+            f"The appeal message appears below:\n\n{quoted_appeal_message}\n\n"
+            f"The filtered message appears below:\n\n{quoted_matched_content}"        
+        )
+
         for admin in self.threativore.appeal_admins:
             quoted_appeal_message = '>' + new_appeal.message.replace('\n', '\n>')
             quoted_matched_content = '>' + filter_match.content.replace('\n', '\n>')
-            admin.pm(
-                content=(
-                    f"Threativore appeal has been lodged by {new_appeal.creator_url} "
-                    f"for action {new_appeal.filter_match_id} caused by regex `{filter_match.filter.regex}`.\n\n"
-                    f"reply with `threativore appeal restore {new_appeal.id}` to restore the item filtered, "
-                    f"reply with `threativore appeal reject {new_appeal.id}` to reject the appeal "
-                    "**and send your PM as the reason to the originating user**, "
-                    f"or reply with `threativore appeal ignore {new_appeal.id}` to simply mark the appeal as resolved.\n\n"
-                    f"The appeal message appears below:\n\n{quoted_appeal_message}\n\n"
-                    f"The filtered message appears below:\n\n{quoted_matched_content}"
-                )
-            )
+            admin.pm(content=appeal_msg)
+        webhook_parser(appeal_msg)
         self.threativore.reply_to_pm(
             pm=pm,
             message=(
