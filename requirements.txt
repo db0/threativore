@@ -1,4 +1,4 @@
-pythorhead>=0.27.2
+pythorhead>=0.27.3
 loguru
 python-dotenv
 SQLAlchemy
