@@ -1,4 +1,4 @@
-# Upgrade from 0.5.0 to 0.6.0
+# Upgrade from 0.6.0 to 0.7.0
 
 Version 0.6.0 adds a new DB column in one table. Use this command to adjust your sqlite DB
 
