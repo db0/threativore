@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -18,6 +19,8 @@ from threativore.orm.user import User
 from pythorhead.types.sort import CommentSortType
 from threativore.argparser import args
 from threativore.config import Config
+from threativore import utils
+import threading
 
 from threativore.webhooks import webhook_parser
 
@@ -32,6 +35,18 @@ class Threativore:
         self.appeals = ThreativoreAppeals(self)
         self.ensure_admin_exists()
         self.prepare_appeal_objects()
+        if not args.api_only:
+            self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
+            self.standard_tasks.start()
+
+    def ensure_fresh_login(self):
+        while True:
+            time.sleep(3600*24)
+            logger.debug("24 hours passed. Refreshing lemmy login credentials.")
+            self.lemmy.relog_in()
+        
+
+
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         pass
@@ -507,7 +522,30 @@ class Threativore:
             content=message,
         )
 
+    def reply_to_user_url(self, user_url, message):
+        user = self.lemmy.get_user(username=utils.url_to_username(user_url), return_user_object=True)
+        logger.debug(f"Replying to {user_url}: {user}")
+        self.lemmy.private_message.create(
+            recipient_id=user.id,
+            content=message,
+        )
+
     def gc(self):
         rows_deleted = database.delete_seen_rows(args.gc_days)
         logger.debug(f"Deleting {rows_deleted} Seen rows")
         db.session.commit()
+
+    def standard_tasks(self):
+        with APP.app_context():
+            while True:
+                try:
+                    self.check_pms()
+                    self.check_posts()
+                    self.check_comments()
+                    self.resolve_reports()
+                    self.gc()
+                    time.sleep(5)
+                except Exception as err:
+                    raise err
+                    logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
+                    time.sleep(1)
