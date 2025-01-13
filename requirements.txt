@@ -7,10 +7,10 @@ werkzeug
 regex
 environs
 
-# TODO: Add web frontend
 Flask
 flask-restx
 flask_limiter
 Flask-Caching
 waitress
 flask_sqlalchemy
+Markdown~=3.4.1
