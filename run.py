@@ -10,7 +10,7 @@ from threativore.argparser import args
 
 if __name__ == "__main__":
     # Only setting this for the WSGI logs
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s', level=logging.ERROR)
     from waitress import serve
 
     logger.init("WSGI Server", status="Starting")
