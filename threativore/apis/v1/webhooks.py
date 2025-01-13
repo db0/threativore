@@ -1,3 +1,4 @@
+from flask import request
 from flask_restx import Resource, reqparse
 from threativore.flask import cache, db
 from loguru import logger
@@ -35,8 +36,8 @@ class KoFi(Resource):
     def post(self):
         '''Ko-Fi webhook input
         '''
+        logger.debug(f"Ko-Fi donation Request: {request.json}")
         self.args = self.post_parser.parse_args()
-        logger.info(f"Ko-Fi donation: {self.args.items()}")
         if self.args.verification_token != Config.kofi_webhook_verification_token:
             raise e.BadRequest("Invalid verification token")
         user = database.get_user_from_override_email(self.args.email)
