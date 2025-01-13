@@ -33,8 +33,11 @@ def find_appeal_by_user(creator_id: int, filter_match_id: int) -> FilterAppeal:
 def get_appeal(appeal_id: int) -> FilterAppeal:
     return FilterAppeal.query.filter_by(id=appeal_id).first()
 
-def get_user(user_url: str) -> User:
+def get_user(user_url: str) -> User | None:
     return User.query.filter_by(user_url=user_url).first()
+
+def get_user_from_override_email(user_email: str) -> User | None:
+    return User.query.filter_by(email_override=user_email).first()
 
 def actor_bypasses_filter(user_url: str) -> User:
     return db.session.query(

@@ -13,6 +13,12 @@ class ThreativoreUsers:
     def __init__(self, threativore):
         self.threativore = threativore
 
+    def ensure_user_exists(self, user_url: str):
+        user = database.get_user(user_url)
+        if user:
+            return user
+        return self.create_user(user_url)
+
     def ensure_user_exists_with_role(self, user_url: str, role: UserRoleTypes):
         user = database.get_user(user_url)
         if user:
@@ -20,13 +26,13 @@ class ThreativoreUsers:
             return
         self.create_user(user_url, role)
 
-    def create_user(self, user_url: str, role: UserRoleTypes = None):
+    def create_user(self, user_url: str, role: UserRoleTypes = None) -> User:
         if not utils.is_valid_user_url(user_url):
             raise e.ReplyException(f"{user_url} not a valid fediverse ID")
         user = database.get_user(user_url)
         if user:
             logger.warning(f"{user_url} already exists")
-            return
+            return user
         new_user = User(
             user_url=user_url,
         )
@@ -34,6 +40,7 @@ class ThreativoreUsers:
         db.session.commit()
         if role:
             new_user.add_role(role)
+        return new_user
 
     def add_role(self, user_url: str, role: UserRoleTypes):
         user = database.get_user(user_url)

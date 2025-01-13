@@ -1,21 +1,26 @@
-import time
+import logging
+import os
 
 from loguru import logger
 
-from threativore import threativore
+from threativore.main import threativore
 from threativore.flask import APP
+from threativore.argparser import args
+
 
 if __name__ == "__main__":
-    with APP.app_context():
-        while True:
-            try:
-                threativore.check_pms()
-                threativore.check_posts()
-                threativore.check_comments()
-                threativore.resolve_reports()
-                threativore.gc()
-                time.sleep(5)
-            except Exception as err:
-                raise err
-                logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
-                time.sleep(1)
+    # Only setting this for the WSGI logs
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s', level=logging.DEBUG)
+    from waitress import serve
+
+    logger.init("WSGI Server", status="Starting")
+    url_scheme = 'https'
+    if args.insecure:
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # Disable this on prod
+        url_scheme = 'http'
+    allowed_host = "127.0.0.1"
+    if args.insecure:
+        allowed_host = "0.0.0.0"
+        logger.init_warn("WSGI Mode", status="Insecure")
+    serve(APP, port=args.port, url_scheme=url_scheme, threads=45, connection_limit=1024, asyncore_use_poll=True)
+    logger.init("WSGI Server", status="Stopped")

@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import Enum, UniqueConstraint, event
 
 import threativore.exceptions as e
 from threativore.enums import UserRoleTypes
 from threativore.flask import db
+from loguru import logger
 
 
 class UserRole(db.Model):
@@ -23,10 +24,32 @@ class UserRole(db.Model):
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-
 # Define event listener to update 'updated' column before each update
 @event.listens_for(UserRole, "before_update")
 def before_update_user_role_listener(mapper, connection, target):
+    target.updated = datetime.utcnow()
+
+
+class UserTag(db.Model):
+    __tablename__ = "user_tags"
+    __table_args__ = (UniqueConstraint("user_id", "tag", name="user_id_tag"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user = db.relationship("User", back_populates="tags")
+    tag = db.Column(db.String(512), nullable=False, index=True)
+    value = db.Column(db.Text, nullable=False, default='', index=True)
+    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+# Define event listener to update 'updated' column before each update
+@event.listens_for(UserTag, "before_update")
+def before_update_user_tag_listener(mapper, connection, target):
     target.updated = datetime.utcnow()
 
 
@@ -36,10 +59,13 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_url = db.Column(db.String(1023), unique=True, nullable=False, index=True)
     api_key = db.Column(db.String(100), unique=True, nullable=True, index=True)
+    # Used when their donation email is different from their user email
+    email_override = db.Column(db.String(1024), unique=True, nullable=True, index=True)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    tags = db.relationship("UserTag", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
     filter_appeals_resolved = db.relationship("FilterAppeal", back_populates="resolver")
 
@@ -84,6 +110,46 @@ class User(db.Model):
             == 1
         )
 
+    def set_tag(self, tag: str, value: str) -> None:
+        assert isinstance(tag, str)
+        tag = tag.lower()
+        existing_tag = UserTag.query.filter_by(
+            user_id=self.id,
+            tag=tag,
+        ).first()
+        if existing_tag:
+            existing_tag.value = value
+            return
+        new_tag = UserTag(
+            user_id=self.id,
+            tag=tag,
+            value=value,
+        )
+        db.session.add(new_tag)
+        db.session.commit()
+
+    def remove_tag(self, tag: str) -> None:
+        assert isinstance(tag, str)
+        tag = tag.lower()
+        existing_tag = UserTag.query.filter_by(
+            user_id=self.id,
+            tag=tag,
+        ).first()
+        if not existing_tag:
+            return
+        db.session.delete(existing_tag)
+        db.session.commit()
+
+    def get_tag(self, tag: str) -> str | None:
+        assert isinstance(tag, str)
+        tag = tag.lower()
+        return (
+            UserTag.query.filter_by(
+                user_id=self.id,
+                tag=tag,
+            ).first()
+        )
+
     def is_moderator(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR)
 
@@ -98,6 +164,24 @@ class User(db.Model):
 
     def can_create_trust(self) -> bool:
         return self.is_moderator()
+    
+    def get_details(self) -> dict:
+        for tag in self.tags:
+            if tag == "ko-fi_tier":
+                expiration_time = UserTag.query.filter_by(
+                    user_id=self.id,
+                    tag="ko-fi_donation_time",
+                    ).first()
+                if expiration_time.value < datetime.utcnow() - timedelta(days=60):
+                    self.remove_tag("ko-fi_tier")
+        return {
+            "id": self.id,
+            "user_url": self.user_url,
+            "roles": [role.user_role for role in self.roles],
+            "tags": [{"tag": t.tag, "value": t.value} for t in self.tags],
+            "created": self.created,
+            "updated": self.updated,
+        }
 
 
 @event.listens_for(User, "before_update")
