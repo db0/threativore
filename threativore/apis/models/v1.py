@@ -27,8 +27,9 @@ class Models:
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
             'delete_unspecified_values': fields.Boolean(default=False, required=False,description="Delete unspecified values"),
         })
-        
-        self.response_model_kofi_webhook = api.model('Ko-fi Webhook', {
+
+        # FIXME: Doesn't work. Crashes API
+        self.input_model_kofi_webhook = api.model('Ko-fi Webhook', {
             'verification_token': fields.String(required=True, description="Verification token"),
             'message_id': fields.String(required=True, description="Message ID"),
             'timestamp': fields.DateTime(required=True, description="Timestamp"),
@@ -46,4 +47,7 @@ class Models:
             'shop_items': fields.Raw(description="Shop items"),
             'tier_name': fields.String(description="Tier name"),
             'shipping': fields.Raw(description="Shipping information"),
+        })
+        self.input_model_kofi_webhook_data = api.model('Ko-fi Webhook Data', {
+            'data': fields.Nested(self.input_model_kofi_webhook),
         })

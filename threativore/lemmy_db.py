@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 from threativore.config import Config
+from loguru import logger
 
 # Define the base for the ORM models
 Base = declarative_base()
@@ -36,7 +37,8 @@ def get_actor_id_from_email(email):
     # Query the LocalUser table to get the person_id
     local_user = session.query(LemmyLocalUser).filter(LemmyLocalUser.email == email).first()
     if not local_user:
-        raise ValueError(f"LocalUser with person_id {email} not found")
+        logger.info(f"LocalUser with person_id {email} not found")
+        return None
 
     # Query the Person table to get the actor_id using the person_id
     person = session.query(LemmyPerson).filter(LemmyPerson.id == local_user.person_id).first()
