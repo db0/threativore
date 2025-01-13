@@ -36,6 +36,8 @@ class KoFi(Resource):
         '''Ko-Fi webhook input
         '''
         self.args = self.post_parser.parse_args()
+        if self.args.verification_token != Config.kofi_webhook_verification_token:
+            raise e.BadRequest("Invalid verification token")
         user = database.get_user_from_override_email(self.args.email)
         if not user:
             actor_id = get_actor_id_from_email(self.args.email)
