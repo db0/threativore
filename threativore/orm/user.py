@@ -43,6 +43,8 @@ class UserTag(db.Model):
     user = db.relationship("User", back_populates="tags")
     tag = db.Column(db.String(512), nullable=False, index=True)
     value = db.Column(db.Text, nullable=False, default='', index=True)
+    flair = db.Column(db.String(2048), nullable=False, default='', index=True)
+    expires = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -110,7 +112,12 @@ class User(db.Model):
             == 1
         )
 
-    def set_tag(self, tag: str, value: str) -> None:
+    def set_tag(
+            self, 
+            tag: str, 
+            value: str, 
+            flair: str | None = None, 
+            expires: datetime | None = None) -> None:
         assert isinstance(tag, str)
         tag = tag.lower()
         existing_tag = UserTag.query.filter_by(
@@ -119,11 +126,16 @@ class User(db.Model):
         ).first()
         if existing_tag:
             existing_tag.value = value
+            existing_tag.flair = flair
+            existing_tag.expires = expires
+            db.session.commit()
             return
         new_tag = UserTag(
             user_id=self.id,
             tag=tag,
             value=value,
+            flair=flair,
+            expires=expires,
         )
         db.session.add(new_tag)
         db.session.commit()
@@ -178,7 +190,14 @@ class User(db.Model):
             "id": self.id,
             "user_url": self.user_url,
             "roles": [role.user_role for role in self.roles],
-            "tags": [{"tag": t.tag, "value": t.value} for t in self.tags],
+            "tags": [
+                {
+                    "tag": t.tag, 
+                    "value": t.value,
+                    "flair": t.flair,
+                    "expires": t.expires,
+                } for t in self.tags
+            ],
             "created": self.created,
             "updated": self.updated,
         }

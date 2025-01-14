@@ -62,7 +62,12 @@ class User(Resource):
         new_user = threativore.users.create_user(user_url)
         if self.args.tags:
             for t in self.args.tags:
-                new_user.set_tag(t["tag"],t["value"])            
+                new_user.set_tag(
+                    t["tag"],
+                    t["value"], 
+                    t.get('flair'), 
+                    t.get('expires'),
+                )             
         if self.args.roles:
             for role in self.args.roles:
                 new_user.add_role(UserRoleTypes[role.upper()])
@@ -126,11 +131,16 @@ class User(Resource):
                     raise e.BadRequest(f"Invalid role in {self.args.roles}")
         if self.args.tags:
             for t in self.args.tags:
-                user.set_tag(t["tag"],t["value"])            
+                user.set_tag(
+                    t["tag"],
+                    t["value"], 
+                    t.get('flair'), 
+                    t.get('expires'),
+                )
         if self.args.roles:
             for role in self.args.roles:
                 user.add_role(UserRoleTypes[role.upper()])
-            return user.get_details(),200
+        return user.get_details(),200
         
 
     delete_parser = reqparse.RequestParser()
