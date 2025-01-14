@@ -17,16 +17,19 @@ class Models:
         })
         self.response_model_model_User_get = api.model('User', {
             'user_url': fields.String(description="The user's URL"),
-            'roles': fields.List(fields.String, description="The user's roles", enum=[i.name for i in enums.UserRoleTypes]),
+            'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
+            'override': fields.String(required=False,mdescription="an override for the user account coming from a payment provider. Can be either an email or username."),
         })
         self.response_model_model_User_put = api.model('User', {
-            'roles': fields.List(fields.String, description="The user's roles", enum=[i.name for i in enums.UserRoleTypes]),
+            'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
+            'override': fields.String(required=False,mdescription="an override for the user account coming from a payment provider. Can be either an email or username."),
         })
         self.response_model_model_User_patch = api.model('User', {
-            'roles': fields.List(fields.String, description="The user's roles", enum=[i.name for i in enums.UserRoleTypes]),
+            'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
+            'override': fields.String(required=False, description="an override for the user account coming from a payment provider. Can be either an email or username."),
             'delete_unspecified_values': fields.Boolean(default=False, required=False,description="Delete unspecified values"),
         })
 

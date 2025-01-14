@@ -1,6 +1,6 @@
 import regex as re
 from loguru import logger
-
+from sqlalchemy.exc import IntegrityError
 import threativore.database as database
 import threativore.exceptions as e
 import threativore.utils as utils
@@ -26,7 +26,7 @@ class ThreativoreUsers:
             return
         self.create_user(user_url, role)
 
-    def create_user(self, user_url: str, role: UserRoleTypes = None) -> User:
+    def create_user(self, user_url: str, role: UserRoleTypes = None, override=None) -> User:
         if not utils.is_valid_user_url(user_url):
             raise e.ReplyException(f"{user_url} not a valid fediverse ID")
         user = database.get_user(user_url)
@@ -35,6 +35,7 @@ class ThreativoreUsers:
             return user
         new_user = User(
             user_url=user_url,
+            email_override=override
         )
         db.session.add(new_user)
         db.session.commit()
@@ -61,6 +62,8 @@ class ThreativoreUsers:
         requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
         if not requesting_user:
             raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
+        if not requesting_user.can_do_user_operations():
+            raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
         user_method = user_search.group(1).lower()
         user_url = user_search.group(2).strip().lower()
         if not utils.is_valid_user_url(user_url):
@@ -82,6 +85,8 @@ class ThreativoreUsers:
                 raise e.ReplyException("ADMIN role cannot be assigned")
             if user_role == UserRoleTypes.MODERATOR and not requesting_user.can_create_mods():
                 raise e.ReplyException("Sorry, you do not have enough rights to make users into MODERATOR.")
+            if user_role == UserRoleTypes.TRUSTED and not requesting_user.can_create_trust():
+                raise e.ReplyException("Sorry, you do not have enough rights to make users into TRUSTED.")
             self.ensure_user_exists_with_role(
                 user_url=user_url,
                 role=user_role,
@@ -109,11 +114,47 @@ class ThreativoreUsers:
                     user_url=user_url,
                     role=role,
                 )
-            self.reply_to_pm(
+            self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Roles {[r.name for r in roles_to_remove]} has been succesfully removed from {user_url} "),
             )
             logger.info(
                 f"Roles {[r.name for r in roles_to_remove]} has been succesfully removed from {user_url} "
                 f"from {requesting_user.user_url}",
+            )
+
+    def parse_override_pm(self, override_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        override = override_search.group(1).strip().lower() if override_search.group(1).strip().lower() != '' else None
+        if requesting_user.email_override != override:
+            try:
+                requesting_user.email_override = override
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                existing_user = database.get_user_from_override_email(override)
+                logger.error(f"{requesting_user.user_url} tried to set override to {override} but it already exists on {existing_user.user_url}")
+                raise e.ReplyException("Override already exists on someone else. Please contact the admins")
+        if override is None:
+            logger.info(
+                f"Override has been succesfully removed from {requesting_user.user_url}",
+            )
+            self.threativore.reply_to_pm(
+                pm=pm,
+                message="Override has been succesfully removed",
+            )
+            return
+        else:
+            logger.info(
+                f"Override has been succesfully set to {requesting_user.email_override} " 
+                f"from {requesting_user.user_url}",
+            )            
+            self.threativore.reply_to_pm(
+                pm=pm,
+                message=(f"Override has been succesfully set to `{requesting_user.email_override}`"),
             )

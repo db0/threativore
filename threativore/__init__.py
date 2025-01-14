@@ -10,6 +10,7 @@ from threativore.flask import APP
 from threativore.consts import THREATIVORE_VERSION
 from threativore.argparser import args
 from threativore.routes import * 
+from threativore.threads import schedule_weekly_download
 
 APP.register_blueprint(apiv1)
 
@@ -25,3 +26,5 @@ def after_request(response):
         etag = "Runtime Error"
     response.headers["ETag"] = etag
     return response
+
+schedule_weekly_download()

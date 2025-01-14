@@ -11,7 +11,7 @@ sqlite3 threativore.db "ALTER TABLE user_tags ADD COLUMN expires datetime;"
 Version 0.8.0 adds a new DB column in one table. Use this command to adjust your sqlite DB
 
 ```bash
-sqlite3 threativore.db "ALTER TABLE users ADD COLUMN email_override varchar(1024);"
+sqlite3 threativore.db "ALTER TABLE users ADD COLUMN email_override varchar(1024) UNIQUE;"
 ```
 # Upgrade from 0.6.0 to 0.7.0
 

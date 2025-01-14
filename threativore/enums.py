@@ -10,7 +10,6 @@ class UserRoleTypes(enum.Enum):
     # Their posts are not triggering the spam filter
     KNOWN = 3
 
-
 class FilterAction(enum.Enum):
     PERMABAN = 0
     BAN30 = 1

@@ -35,7 +35,7 @@ session = Session()
 
 def get_actor_id_from_email(email):
     # Query the LocalUser table to get the person_id
-    local_user = session.query(LemmyLocalUser).filter(LemmyLocalUser.email == email).first()
+    local_user = session.query(LemmyLocalUser).filter(LemmyLocalUser.email.ilike(email)).first()
     if not local_user:
         logger.info(f"LocalUser with person_id {email} not found")
         return None

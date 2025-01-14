@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
-from threativore.enums import EntityType, FilterType
+from threativore.enums import EntityType, FilterType, UserRoleTypes
 from threativore.orm.filters import Filter, FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User, UserRole
 from threativore.flask import db
 from sqlalchemy.sql import exists
+from sqlalchemy import func, or_, and_, not_
+
 
 def get_all_filters(filter_type: FilterType, regex_search: str | None = None) -> list[Filter]:
     query = Filter.query.filter_by(
@@ -42,7 +44,10 @@ def get_user_from_override_email(user_email: str) -> User | None:
 def actor_bypasses_filter(user_url: str) -> User:
     return db.session.query(
         exists().where(
-            UserRole.user_id == User.id
+            and_(
+                UserRole.user_id == User.id,
+                UserRole.user_role.in_([UserRoleTypes.ADMIN, UserRoleTypes.MODERATOR, UserRoleTypes.TRUSTED]),
+            )
         ).where(
             User.user_url == user_url
         )

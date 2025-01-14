@@ -135,3 +135,16 @@ For appeals to work, you need to do one of two things
 1. Populate `DISCORDWEBHOOK` and/or `SLACKWEBHOOK`. These webhooks will also receive a message with the appeal instructions.
 
 Only people set as threativore mods can resolve appeal requests.
+
+### Override
+
+If you are supporting your instance through Liberapay, or if you're using Ko-Fi with a different email than the one you used to subscribe to your instance, you can set an `override` for your user so that threativore can match your contributions to your user account
+
+To do so, all you need to do is send a PM to the threativore bot on your instancee with the message
+
+`threativore set override: <your email/username>`
+
+Where you must replace `<your email/username>` accordingly
+
+* For Ko-fi, you need to put the same email address you used to register your account in Ko-Fi
+* for liberapay, you need to put your username as it is shown in your account page.

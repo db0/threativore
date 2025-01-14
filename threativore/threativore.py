@@ -44,9 +44,6 @@ class Threativore:
             time.sleep(3600*24)
             logger.debug("24 hours passed. Refreshing lemmy login credentials.")
             self.lemmy.relog_in()
-        
-
-
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         pass
@@ -503,14 +500,22 @@ class Threativore:
                 )
                 if reject_appeal_search:
                     self.appeals.parse_appeal_reject(reject_appeal_search, pm)
+                set_override_search = re.search(
+                    r"set override:? ?(.*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                logger.debug([set_override_search,set_override_search.group(1),len(set_override_search.group(1)),pm["private_message"]["content"]])
+                if set_override_search:
+                    self.users.parse_override_pm(set_override_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
-                    message=(f"Problem encountered when parsing operation: {err}"),
+                    message=(f"Problem encountered when parsing operation: {err.specific}"),
                 )
-                logger.warning(err)  # TODO: Reply back
+                logger.warning(err.specific)
             except (e.ThreativoreException, e.DBException) as err:
-                logger.error(err)
+                logger.error(err.specific)
 
     def reply_to_pm(self, pm, message):
         self.reply_to_user_id(pm["private_message"]["creator_id"],message)

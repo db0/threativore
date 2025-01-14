@@ -21,10 +21,14 @@ class Config:
     postgres_url = env("POSTGRES_URL", None)
     dry_run = env.bool("DRY_RUN", False)
     admin_api_keys: dict = env.dict("ADMIN_API_KEYS", subcast_values=str)
+    # Payment stuff
     kofi_webhook_verification_token: str = env("KOFI_WEBHOOK_VERIFICATION_TOKEN", None)
+    liberapay_cookie: str = env("LIBERAPAY_COOKIE", None)
+    liberapay_username: str = env("LIBERAPAY_USERNAME", None)
     # For use with the connection to the lemmy DB directly
     lemmy_db_host: str = env.str("LEMMY_DB_HOST", None)
     lemmy_db_username: str = env.str("LEMMY_DB_USERNAME", None)
     lemmy_db_password: str = env.str("LEMMY_DB_PASSWORD", None)
     lemmy_db_database: str = env.str("LEMMY_DB_DATABASE", None)
     donation_expiration_days: int = env.int("DONATION_EXPIRATION_DAYS", 60)
+    

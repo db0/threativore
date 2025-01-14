@@ -171,13 +171,19 @@ class User(db.Model):
     def can_do_filters(self) -> bool:
         return self.is_moderator()
 
+    def can_do_user_operations(self) -> bool:
+        return self.is_moderator()
+
     def can_create_mods(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN)
+
+    def is_known(self) -> bool:
+        return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR) or self.has_role(UserRoleTypes.TRUSTED)
 
     def can_create_trust(self) -> bool:
         return self.is_moderator()
     
-    def get_details(self) -> dict:
+    def get_details(self, privilege=0) -> dict:
         for tag in self.tags:
             if tag == "ko-fi_tier":
                 expiration_time = UserTag.query.filter_by(
@@ -186,7 +192,7 @@ class User(db.Model):
                     ).first()
                 if expiration_time.value < datetime.utcnow() - timedelta(days=60):
                     self.remove_tag("ko-fi_tier")
-        return {
+        user_details = {
             "id": self.id,
             "user_url": self.user_url,
             "roles": [role.user_role for role in self.roles],
@@ -201,6 +207,9 @@ class User(db.Model):
             "created": self.created,
             "updated": self.updated,
         }
+        if privilege > 0:
+            user_details["override"] = self.email_override
+        return user_details
 
 
 @event.listens_for(User, "before_update")

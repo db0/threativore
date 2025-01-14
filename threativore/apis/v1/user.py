@@ -12,19 +12,23 @@ from threativore.apis.v1.base import *
 
 class User(Resource):
     get_parser = reqparse.RequestParser()
+    get_parser.add_argument("apikey", type=str, required=False, help="A threativore admin key.", location='headers')
     get_parser.add_argument("Client-Agent", default="unknown:0:unknown", type=str, required=False, help="The client name and version.", location="headers")
 
     @api.expect(get_parser)
-    @cache.cached(timeout=10)
     @api.marshal_with(models.response_model_model_User_get, code=200, description='Get User details', skip_none=True)
     def get(self,username):
         '''Details about a specific user
         '''
+        self.args = self.get_parser.parse_args()
         user_url = utils.username_to_url(username)
         user = database.get_user(user_url)
         if not user:
             raise e.NotFound(f"{user_url} not found")
-        return user.get_details(),200
+        privilege = 0
+        if self.args.apikey in Config.admin_api_keys:
+            privilege = 2
+        return user.get_details(privilege),200
         
     put_parser = reqparse.RequestParser()
     put_parser.add_argument("apikey", type=str, required=True, help="A threativore admin key.", location='headers')
@@ -41,6 +45,12 @@ class User(Resource):
             type=list,
             required=False,
             help="List of roles to set for this user.",
+            location="json",
+        )
+    put_parser.add_argument(
+            "override",
+            type=str,
+            required=False,
             location="json",
         )
     
@@ -60,7 +70,7 @@ class User(Resource):
         user = database.get_user(user_url)
         if user:
             raise e.BadRequest(f"{user_url} already exists. Please use PATCH to modify it.")
-        new_user = threativore.users.create_user(user_url)
+        new_user = threativore.users.create_user(user_url, override=self.args.override.lower())
         if self.args.tags:
             for t in self.args.tags:
                 expires = None
@@ -95,6 +105,12 @@ class User(Resource):
             location="json",
         )
     patch_parser.add_argument(
+            "override",
+            type=str,
+            required=False,
+            location="json",
+        )
+    patch_parser.add_argument(
             "delete_unspecified_values",
             type=bool,
             required=False,
@@ -109,7 +125,7 @@ class User(Resource):
     @api.response(401, 'Invalid API Key', models.response_model_error)
     @api.response(403, 'Access Denied', models.response_model_error)
     def patch(self,username):
-        '''Adds a new user to threativore
+        '''Modify a threativore user
         '''
         self.args = self.patch_parser.parse_args()
         user_url = utils.username_to_url(username)
@@ -119,7 +135,6 @@ class User(Resource):
             raise e.Unauthorized("Invalid API key")
         logger.info(f"{Config.admin_api_keys[self.args.apikey]} is modifying a user: {user_url}")
         user = database.get_user(user_url)
-        logger.debug(self.args.tags)
         if not user:
             raise e.BadRequest(f"{user_url} does not exist. Please use PUT to add it.")
         if self.args.delete_unspecified_values:
@@ -147,6 +162,9 @@ class User(Resource):
         if self.args.roles:
             for role in self.args.roles:
                 user.add_role(UserRoleTypes[role.upper()])
+        if self.args.override is not None:
+            user.email_override = self.args.override.lower()
+            db.session.commit()
         return user.get_details(),200
         
 
