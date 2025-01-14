@@ -56,7 +56,6 @@ class KoFi(Resource):
             flair=tier_flair,
             expires=datetime.utcnow() + timedelta(days=Config.donation_expiration_days),
         )
-        user.set_tag("ko-fi_donation_time", data.get("timestamp"))
         threativore.reply_to_user_url(
             actor_id, 
             (

@@ -12,8 +12,8 @@ class Models:
         self.response_model_UserTags = api.model('UserTags', {
             'tag': fields.String(description="A user's tag"),
             'value': fields.String(description="A user's tag value"),
-            'flair': fields.String(description="A user's tag flair value"),
-            'expires': fields.String(description="A user's tag expiry date"),
+            'flair': fields.String(description="A user's tag flair value", required=False),
+            'expires': fields.String(description="A user's tag expiry date", required=False),
         })
         self.response_model_model_User_get = api.model('User', {
             'user_url': fields.String(description="The user's URL"),

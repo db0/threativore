@@ -1,4 +1,5 @@
 from flask_restx import Resource, reqparse
+from datetime import datetime
 from threativore.flask import cache, db
 from loguru import logger
 from threativore import database
@@ -62,11 +63,14 @@ class User(Resource):
         new_user = threativore.users.create_user(user_url)
         if self.args.tags:
             for t in self.args.tags:
+                expires = None
+                if t.get('expires'):
+                    expires = datetime.fromisoformat(t.get('expires'))
                 new_user.set_tag(
                     t["tag"],
                     t["value"], 
                     t.get('flair'), 
-                    t.get('expires'),
+                    expires,
                 )             
         if self.args.roles:
             for role in self.args.roles:
@@ -131,11 +135,14 @@ class User(Resource):
                     raise e.BadRequest(f"Invalid role in {self.args.roles}")
         if self.args.tags:
             for t in self.args.tags:
+                expires = None
+                if t.get('expires'):
+                    expires = datetime.fromisoformat(t.get('expires'))
                 user.set_tag(
                     t["tag"],
                     t["value"], 
                     t.get('flair'), 
-                    t.get('expires'),
+                    expires,
                 )
         if self.args.roles:
             for role in self.args.roles:
