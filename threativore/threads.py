@@ -15,7 +15,7 @@ def process_user(data):
     logger.debug(f"Processing Liberapay patron: {data.get('patron_username')}")
     tier = "drinking mate"
     tier_flairs = {
-        "powder monkey": "https://lemmy.dbzer0.com/pictrs/image/d9d3a0db-c03a-45d0-a469-aad183cecd9a.webp",
+        "powder monkey": "https://lemmy.dbzer0.com/pictrs/image/633f798e-adcc-4a3b-9606-267f581388ff.webp",
         "buccaneer": "https://lemmy.dbzer0.com/pictrs/image/f4c6e9fb-7576-4d93-beba-af937db36784.webp",
         "threadiverse enjoyer": "https://lemmy.dbzer0.com/pictrs/image/efc716fe-f9bd-48ec-a065-b46dad5aa042.webp",
     }
