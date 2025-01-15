@@ -23,8 +23,13 @@ class Config:
     admin_api_keys: dict = env.dict("ADMIN_API_KEYS", subcast_values=str)
     # Payment stuff
     kofi_webhook_verification_token: str = env("KOFI_WEBHOOK_VERIFICATION_TOKEN", None)
+    kofi_tiers: list[str] = env.list("KOFI_TIERS", subcast=str)
     liberapay_cookie: str = env("LIBERAPAY_COOKIE", None)
     liberapay_username: str = env("LIBERAPAY_USERNAME", None)
+    liberapay_tiers: dict = env.dict("LIBERAPAY_TIERS", None)
+    known_custom_emoji_flairs: dict = env.dict("KNOWN_CUSTOM_EMOJI_FLAIRS", None, subcast_values=str)
+    payment_tier_descriptions: dict = env.dict("PAYMENT_TIER_DESCRIPTIONS", None, subcast_values=str)
+    known_tag_descriptions: dict = env.dict("KNOWN_TAG_DESCRIPTIONS", None, subcast_values=str)
     # For use with the connection to the lemmy DB directly
     lemmy_db_host: str = env.str("LEMMY_DB_HOST", None)
     lemmy_db_username: str = env.str("LEMMY_DB_USERNAME", None)

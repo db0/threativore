@@ -14,18 +14,11 @@ def process_user(data):
         return
     logger.debug(f"Processing Liberapay patron: {data.get('patron_username')}")
     tier = "drinking mate"
-    tier_flairs = {
-        "powder monkey": "https://lemmy.dbzer0.com/pictrs/image/633f798e-adcc-4a3b-9606-267f581388ff.webp",
-        "buccaneer": "https://lemmy.dbzer0.com/pictrs/image/f4c6e9fb-7576-4d93-beba-af937db36784.webp",
-        "threadiverse enjoyer": "https://lemmy.dbzer0.com/pictrs/image/efc716fe-f9bd-48ec-a065-b46dad5aa042.webp",
-    }
-    if float(data.get("weekly_amount")) > 5:
-        tier = "powder monkey"
-    elif float(data.get("weekly_amount")) > 1:
-        tier = "buccaneer"
-    else:
-        tier = "threadiverse enjoyer"
-    tier_flair = tier_flairs.get(tier.lower(), "")
+    for liberapay_tier in sorted(Config.liberapay_tiers.keys(), key=float, reverse=True):
+        if float(data.get("weekly_amount")) > float(liberapay_tier):
+            tier = Config.liberapay_tiers[liberapay_tier]
+            logger.debug(f"Found Liberapay tier: {liberapay_tier}. Assigning tier: {tier}")
+            break
     user = database.get_user_from_override_email(data.get("patron_username"))
     if not user:
         logger.warning(f"Liberapay patron '{data.get('patron_username')}' isn't defined in the overrides!")
@@ -33,7 +26,7 @@ def process_user(data):
     user.set_tag(
         tag="liberapay_tier", 
         value=tier,
-        flair=tier_flair,
+        custom_emoji=tier.replace(r' ','_'),
         expires=datetime.utcnow() + timedelta(days=Config.donation_expiration_days),
     )
     pledge_date = datetime.strptime(data.get("pledge_date"), "%Y-%m-%d")

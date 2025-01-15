@@ -5,6 +5,8 @@ from sqlalchemy import Enum, UniqueConstraint, event
 import threativore.exceptions as e
 from threativore.enums import UserRoleTypes
 from threativore.flask import db
+from threativore.emoji import lemmy_emoji
+from threativore.config import Config
 from loguru import logger
 
 
@@ -43,7 +45,11 @@ class UserTag(db.Model):
     user = db.relationship("User", back_populates="tags")
     tag = db.Column(db.String(512), nullable=False, index=True)
     value = db.Column(db.Text, nullable=False, default='', index=True)
-    flair = db.Column(db.String(2048), nullable=False, default='', index=True)
+    flair = db.Column(db.String(2048), nullable=False, default='')
+    # If set, will replace the flair with the custom emoji URL from the instance
+    custom_emoji = db.Column(db.String(2048), nullable=True, index=True)
+    # A description of this tag. To be used by UIs on mouseovers etc.
+    description = db.Column(db.Text, nullable=True)
     expires = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -117,6 +123,7 @@ class User(db.Model):
             tag: str, 
             value: str, 
             flair: str | None = None, 
+            custom_emoji: str | None = None, 
             expires: datetime | None = None) -> None:
         assert isinstance(tag, str)
         tag = tag.lower()
@@ -128,6 +135,7 @@ class User(db.Model):
             existing_tag.value = value
             existing_tag.flair = flair
             existing_tag.expires = expires
+            existing_tag.custom_emoji = custom_emoji
             db.session.commit()
             return
         new_tag = UserTag(
@@ -136,6 +144,7 @@ class User(db.Model):
             value=value,
             flair=flair,
             expires=expires,
+            custom_emoji=custom_emoji,
         )
         db.session.add(new_tag)
         db.session.commit()
@@ -184,26 +193,31 @@ class User(db.Model):
         return self.is_moderator()
     
     def get_details(self, privilege=0) -> dict:
-        for tag in self.tags:
-            if tag == "ko-fi_tier":
-                expiration_time = UserTag.query.filter_by(
-                    user_id=self.id,
-                    tag="ko-fi_donation_time",
-                    ).first()
-                if expiration_time.value < datetime.utcnow() - timedelta(days=60):
-                    self.remove_tag("ko-fi_tier")
+        tags = []
+        for t in self.tags:
+            # If the tag has a custom emoji attached, use that as the flair
+            flair = lemmy_emoji.emoji_cache.get(t.custom_emoji) if t.custom_emoji else t.flair
+            # If the tag is a known custom emoji flair, use that as the flair
+            if t.tag in Config.known_custom_emoji_flairs:
+                flair = lemmy_emoji.emoji_cache.get(Config.known_custom_emoji_flairs[t.tag])
+            if t.description:
+                description = t.description
+            elif t.tag in ["ko-fi_tier", "liberapay_tier", "patreon_tier"]:
+                description = Config.payment_tier_descriptions[t.value]
+            elif t.tag in Config.known_tag_descriptions:
+                description = Config.known_tag_descriptions[t.tag]
+            tags.append({
+                "tag": t.tag, 
+                "value": t.value,
+                "flair": flair,
+                "expires": t.expires,
+                "description": description,
+            })
         user_details = {
             "id": self.id,
             "user_url": self.user_url,
             "roles": [role.user_role for role in self.roles],
-            "tags": [
-                {
-                    "tag": t.tag, 
-                    "value": t.value,
-                    "flair": t.flair,
-                    "expires": t.expires,
-                } for t in self.tags
-            ],
+            "tags": tags,
             "created": self.created,
             "updated": self.updated,
         }

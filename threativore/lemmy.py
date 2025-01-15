@@ -21,3 +21,5 @@ class BaseLemmy:
             logger.debug("24 hours passed. Refreshing lemmy login credentials.")
             self.lemmy.relog_in()
         
+
+base_lemmy = BaseLemmy()

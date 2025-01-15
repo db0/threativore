@@ -36,21 +36,14 @@ class KoFi(Resource):
                 raise e.BadRequest(f"Ko-Fi donation from {data.get('email')} but no user from that email found in our instance.")
             user = threativore.users.ensure_user_exists(actor_id)
         tier = "drinking mate"
-        tier_flairs = {
-            "drinking mate": "https://lemmy.dbzer0.com/pictrs/image/eac0dff9-d8b8-44ac-926c-6f1e96678803.webp",
-            "deck hand": "https://lemmy.dbzer0.com/pictrs/image/0cc8915a-acf8-451b-8350-c889f469ac42.webp",
-            "salty dog": "https://lemmy.dbzer0.com/pictrs/image/f87ba660-38b6-4f57-8260-1c90a7f127cb.webp",
-            "threadiverse enjoyer": "https://lemmy.dbzer0.com/pictrs/image/efc716fe-f9bd-48ec-a065-b46dad5aa042.webp",
-        }
         if data.get("is_subscription_payment") and data.get("tier_name"):
-            tier = data.get("tier_name")
-        if tier not in tier_flairs:
+            tier = data.get("tier_name").lower()
+        if tier not in Config.kofi_tiers:
             tier = "drinking mate"
-        tier_flair = tier_flairs.get(tier.lower(), "")
         user.set_tag(
             tag="ko-fi_tier", 
             value=tier,
-            flair=tier_flair,
+            custom_emoji=tier.replace(r' ','_'),
             expires=datetime.utcnow() + timedelta(days=Config.donation_expiration_days),
         )
         if data.get("is_first_subscription_payment", False) is True:
