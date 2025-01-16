@@ -148,3 +148,21 @@ Where you must replace `<your email/username>` accordingly
 
 * For Ko-fi, you need to put the same email address you used to register your account in Ko-Fi
 * for liberapay, you need to put your username as it is shown in your account page.
+
+### Vouching for others
+
+Any a trusted member of the instance can vouch for others. The amount of times they can vouch can be set using `VOUCHES_PER_USER` env var. Trusted users are anyone with the `TRUSTED` role, and you can define users to automatically receive the `TRUSTED` role using the env vars `TRUSTED_TIERS` and `TRUSTED_TAGS`. 
+
+A vouched user becomes `KNOWN` to the instance, which means their comments and posts will be ignored by the threativore anti-spam filter. A vouched member can also take part in voting for the instance.
+
+To vouch for a user PM the threativore bot on your instance with the message
+
+`threativore vouch for: @<target username>`
+
+`<target username>` **has** to be prepended with a `@` and optionally allow the instance domain at the end (.e.g `@db0@lemmy.dbzer0.com`). If an instance domain is not provided at the end, the threativore instance domain will be assumed. Do not create a markdown link with the username (the UI might try to autofill that). 
+
+You can withdraw vouches for users you've vouched for using this command
+
+`threativore withdraw vouch for: @<target username>`
+
+using the same rules as before for `<target username>`

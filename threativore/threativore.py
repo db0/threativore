@@ -505,9 +505,15 @@ class Threativore:
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
-                logger.debug([set_override_search,set_override_search.group(1),len(set_override_search.group(1)),pm["private_message"]["content"]])
                 if set_override_search:
                     self.users.parse_override_pm(set_override_search, pm)
+                set_vouch_search = re.search(
+                    r"(withdraw )?vouch for:? ?@(.*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if set_vouch_search:
+                    self.users.parse_vouch_pm(set_vouch_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,

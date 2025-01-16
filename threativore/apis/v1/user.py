@@ -1,4 +1,5 @@
 from flask_restx import Resource, reqparse
+from flask import request
 from datetime import datetime
 from threativore.flask import cache, db
 from loguru import logger
@@ -10,12 +11,16 @@ from threativore.enums import UserRoleTypes
 from threativore import utils
 from threativore.apis.v1.base import *
 
+def is_privileged(*args, **kwargs):
+    return request.headers.get("apikey") is not None
+
 class User(Resource):
     get_parser = reqparse.RequestParser()
     get_parser.add_argument("apikey", type=str, required=False, help="A threativore admin key.", location='headers')
     get_parser.add_argument("Client-Agent", default="unknown:0:unknown", type=str, required=False, help="The client name and version.", location="headers")
 
     @api.expect(get_parser)
+    @cache.cached(timeout=60, unless=is_privileged)
     @api.marshal_with(models.response_model_model_User_get, code=200, description='Get User details', skip_none=True)
     def get(self,username):
         '''Details about a specific user

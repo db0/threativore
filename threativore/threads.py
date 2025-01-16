@@ -7,7 +7,7 @@ from threativore.main import threativore
 from threativore import database
 from loguru import logger
 from threativore.flask import APP
-
+from threativore.emoji import lemmy_emoji
 
 def process_user(data):
     if data.get("visibility") == "secret":
@@ -29,6 +29,7 @@ def process_user(data):
         custom_emoji=tier.replace(r' ','_'),
         expires=datetime.utcnow() + timedelta(days=Config.donation_expiration_days),
     )
+    tier_markdown = lemmy_emoji.get_emoji_markdown(tier.replace(r' ','_'))
     pledge_date = datetime.strptime(data.get("pledge_date"), "%Y-%m-%d")
     if pledge_date > datetime.utcnow() - timedelta(days=7):
       threativore.reply_to_user_url(
@@ -36,7 +37,7 @@ def process_user(data):
           message=(
               'Arr matey! Your donation to the ![a pirate chest full of doubloons](https://lemmy.dbzer0.com/pictrs/image/af140ff3-a09d-4b9c-8907-15d34d674c0e.png "booty") is acknowledged and will go towards '
               "the upkeep of the ship. "
-              f'You have been marked as a ![{tier}]({tier_flair} "emoji") {tier} ![{tier}]({tier_flair} "emoji")'
+              f'You have been marked as a {tier_markdown}{tier}{tier_markdown}'
               'Thank ye! ![pirate captain giving the thumbs up](https://lemmy.dbzer0.com/pictrs/image/bc10b52a-196d-4e4a-98a2-bfd2dbb10d9a.png "thumbsup")'
           )
       )

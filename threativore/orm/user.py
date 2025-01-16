@@ -50,7 +50,7 @@ class UserTag(db.Model):
     custom_emoji = db.Column(db.String(2048), nullable=True, index=True)
     # A description of this tag. To be used by UIs on mouseovers etc.
     description = db.Column(db.Text, nullable=True)
-    expires = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires = db.Column(db.DateTime, nullable=True)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -131,6 +131,15 @@ class User(db.Model):
             user_id=self.id,
             tag=tag,
         ).first()
+        if tag in ["ko-fi_tier", "liberapay_tier"]:
+            if value in Config.trusted_tiers:
+                self.add_role(UserRoleTypes.TRUSTED)
+            if value in Config.known_tiers:
+                self.add_role(UserRoleTypes.KNOWN)
+        if tag in Config.trusted_tags and value != "false":
+            self.add_role(UserRoleTypes.TRUSTED)
+        if tag in Config.known_tags and value != "false":
+            self.add_role(UserRoleTypes.KNOWN)
         if existing_tag:
             existing_tag.value = value
             existing_tag.flair = flair
@@ -186,8 +195,37 @@ class User(db.Model):
     def can_create_mods(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN)
 
+    def has_tag(self, tag: str) -> bool:
+        return (
+            UserTag.query.filter_by(
+                user_id=self.id,
+                tag="vouched",
+            ).count()
+            == 1
+        )
+
     def is_known(self) -> bool:
-        return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR) or self.has_role(UserRoleTypes.TRUSTED)
+        for role in self.roles:
+            # Doing it this way instead of using has_role to avoid 4 distinct calls to the DB
+            if role.user_role in [
+                UserRoleTypes.KNOWN, 
+                UserRoleTypes.TRUSTED, 
+                UserRoleTypes.MODERATOR, 
+                UserRoleTypes.ADMIN
+            ]:
+                return True
+        return self.has_tag("vouched")
+
+    def is_trusted(self) -> bool:
+        for role in self.roles:
+            # Doing it this way instead of using has_role to avoid 3 distinct calls to the DB
+            if role.user_role in [
+                UserRoleTypes.TRUSTED, 
+                UserRoleTypes.MODERATOR, 
+                UserRoleTypes.ADMIN
+            ]:
+                return True
+        return False
 
     def can_create_trust(self) -> bool:
         return self.is_moderator()
@@ -196,16 +234,16 @@ class User(db.Model):
         tags = []
         for t in self.tags:
             # If the tag has a custom emoji attached, use that as the flair
-            flair = lemmy_emoji.emoji_cache.get(t.custom_emoji) if t.custom_emoji else t.flair
+            flair = lemmy_emoji.get_emoji_url(t.custom_emoji) if t.custom_emoji else t.flair
             # If the tag is a known custom emoji flair, use that as the flair
-            if t.tag in Config.known_custom_emoji_flairs:
-                flair = lemmy_emoji.emoji_cache.get(Config.known_custom_emoji_flairs[t.tag])
+            if t.tag in Config.predefined_custom_emoji_flairs:
+                flair = lemmy_emoji.get_emoji_url(Config.predefined_custom_emoji_flairs[t.tag])
             if t.description:
                 description = t.description
             elif t.tag in ["ko-fi_tier", "liberapay_tier", "patreon_tier"]:
                 description = Config.payment_tier_descriptions[t.value]
-            elif t.tag in Config.known_tag_descriptions:
-                description = Config.known_tag_descriptions[t.tag]
+            elif t.tag in Config.predefined_tag_descriptions:
+                description = Config.predefined_tag_descriptions[t.tag]
             tags.append({
                 "tag": t.tag, 
                 "value": t.value,
