@@ -9,6 +9,8 @@ class UserRoleTypes(enum.Enum):
     TRUSTED = 2
     # Their posts are not triggering the spam filter
     KNOWN = 3
+    # They can participate in governance voting
+    VOTING = 4
 
 class FilterAction(enum.Enum):
     PERMABAN = 0
@@ -35,3 +37,8 @@ class AppealStatus(enum.Enum):
     PENDING = 0
     RESTORED = 1
     REJECTED = 2
+
+class GovernancePostType(enum.Enum):
+    OTHER = 0
+    SIMPLE_MAJORITY = 1
+    SENSE_CHECK = 2

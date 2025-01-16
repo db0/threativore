@@ -11,12 +11,13 @@ import threativore.exceptions as e
 from threativore.classes.filters import ThreativoreFilters
 from threativore.classes.appeals import ThreativoreAppeals
 from threativore.classes.users import ThreativoreUsers
+from threativore.classes.governance import Governance
 from threativore.enums import EntityType, FilterAction, FilterType, UserRoleTypes
 from threativore.flask import APP, db
 from threativore.orm.filters import FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User
-from pythorhead.types.sort import CommentSortType
+from pythorhead.types.sort import CommentSortType, SortType
 from threativore.argparser import args
 from threativore.config import Config
 from threativore import utils
@@ -33,6 +34,7 @@ class Threativore:
         self.filters = ThreativoreFilters(self)
         self.users = ThreativoreUsers(self)
         self.appeals = ThreativoreAppeals(self)
+        self.governance = Governance(self)
         self.ensure_admin_exists()
         self.prepare_appeal_objects()
         if not args.api_only:
@@ -325,7 +327,7 @@ class Threativore:
 
     def check_posts_page(self, page:int=1, ids_checked_already: list[int] = []):
         logger.debug(f"Checking Posts page {page}...")
-        cm = self.lemmy.post.list(limit=10,sort=CommentSortType.New, page=page)
+        cm = self.lemmy.post.list(limit=10,sort=SortType.New, page=page)
         all_ids = [post["post"]["id"] for post in cm if post["post"]["id"] not in ids_checked_already]
         seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.POST)
         # logger.debug([seen_any_previously, len(all_ids)])
@@ -514,6 +516,12 @@ class Threativore:
                 )
                 if set_vouch_search:
                     self.users.parse_vouch_pm(set_vouch_search, pm)
+                if re.search(
+                    r"governance",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                ):
+                    self.users.parse_pm(pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
@@ -557,6 +565,5 @@ class Threativore:
                     self.gc()
                     time.sleep(5)
                 except Exception as err:
-                    raise err
                     logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
                     time.sleep(1)

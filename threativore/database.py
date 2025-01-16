@@ -3,6 +3,7 @@ from threativore.enums import EntityType, FilterType, UserRoleTypes
 from threativore.orm.filters import Filter, FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User, UserRole, UserTag
+from threativore.orm.governance import GovernancePost, GovernancePostComment
 from threativore.flask import db
 from sqlalchemy.sql import exists
 from sqlalchemy import func, or_, and_, not_
@@ -63,7 +64,7 @@ def has_been_seen(entity_id: int, entity_type: EntityType):
         == 1
     )
 
-def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType):
+def has_any_entry_been_seen(entity_ids: list[int], entity_type: EntityType) -> bool:
     return (
         Seen.query.filter(
             Seen.entity_id.in_(entity_ids),
@@ -98,3 +99,26 @@ def get_tag(tag: str, user_id: int):
         UserTag.tag == tag,
         User.id == user_id,
     ).first()
+
+def get_governance_post(post_id: int) -> GovernancePost | None:
+    return GovernancePost.query.filter(
+        GovernancePost.post_id == post_id,
+    ).first()
+
+def get_all_active_governance_posts() -> list[GovernancePost]:
+    return GovernancePost.query.filter(
+        or_(
+            GovernancePost.expires == None,
+            # We give some buffer to be able to do final updates
+            GovernancePost.expires > datetime.utcnow() - timedelta(hours=1)
+        )
+    ).all()
+
+def replied_to_gpost_comment(parent_id):
+    return (
+        GovernancePostComment.query.filter(
+            GovernancePostComment.replied.is_(True),
+            GovernancePostComment.parent_id == parent_id,
+        ).count()
+        >= 1
+    )

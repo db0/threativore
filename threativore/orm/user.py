@@ -76,6 +76,8 @@ class User(db.Model):
     tags = db.relationship("UserTag", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
     filter_appeals_resolved = db.relationship("FilterAppeal", back_populates="resolver")
+    governance_posts = db.relationship("GovernancePost", back_populates="user", cascade="all, delete-orphan")
+    governance_post_comments = db.relationship("GovernancePostComment", back_populates="user", cascade="all, delete-orphan")
 
     def add_role(self, role: UserRoleTypes) -> None:
         if not isinstance(role, UserRoleTypes):
@@ -136,10 +138,14 @@ class User(db.Model):
                 self.add_role(UserRoleTypes.TRUSTED)
             if value in Config.known_tiers:
                 self.add_role(UserRoleTypes.KNOWN)
+            if value in Config.voting_tiers:
+                self.add_role(UserRoleTypes.VOTING)
         if tag in Config.trusted_tags and value != "false":
             self.add_role(UserRoleTypes.TRUSTED)
         if tag in Config.known_tags and value != "false":
             self.add_role(UserRoleTypes.KNOWN)
+        if tag in Config.voting_tags and value != "false":
+            self.add_role(UserRoleTypes.VOTING)
         if existing_tag:
             existing_tag.value = value
             existing_tag.flair = flair
@@ -216,6 +222,19 @@ class User(db.Model):
                 return True
         return self.has_tag("vouched")
 
+    def can_vote(self) -> bool:
+        for role in self.roles:
+            # Doing it this way instead of using has_role to avoid 4 distinct calls to the DB
+            # FIXME: Can probably do it with a single db count to save pulling all the roles.
+            if role.user_role in [
+                UserRoleTypes.VOTING, 
+                UserRoleTypes.TRUSTED, 
+                UserRoleTypes.MODERATOR, 
+                UserRoleTypes.ADMIN
+            ]:
+                return True
+        return self.has_tag("vouched")
+
     def is_trusted(self) -> bool:
         for role in self.roles:
             # Doing it this way instead of using has_role to avoid 3 distinct calls to the DB
@@ -229,8 +248,9 @@ class User(db.Model):
 
     def can_create_trust(self) -> bool:
         return self.is_moderator()
-    
-    def get_details(self, privilege=0) -> dict:
+
+
+    def compile_tags_list(self):
         tags = []
         for t in self.tags:
             # If the tag has a custom emoji attached, use that as the flair
@@ -251,17 +271,61 @@ class User(db.Model):
                 "expires": t.expires,
                 "description": description,
             })
+        return tags
+
+    def get_details(self, privilege=0) -> dict:
         user_details = {
             "id": self.id,
             "user_url": self.user_url,
             "roles": [role.user_role for role in self.roles],
-            "tags": tags,
+            "tags": self.compile_tags_list(),
             "created": self.created,
             "updated": self.updated,
         }
         if privilege > 0:
             user_details["override"] = self.email_override
         return user_details
+
+    def get_all_flairs(self):
+        return [tag["flair"] for tag in self.compile_tags_list() if tag["flair"]]
+            
+    def get_all_flair_markdowns(self):
+        flair_markdowns = []
+        for t in self.tags:
+            if t.custom_emoji:
+                flair_markdowns.append(lemmy_emoji.get_emoji_markdown(t.custom_emoji))
+                continue
+            if t.tag in Config.predefined_custom_emoji_flairs:
+                flair_markdowns.append(lemmy_emoji.get_emoji_markdown(Config.predefined_custom_emoji_flairs[t.tag]))
+        return flair_markdowns
+    
+    def get_most_significant_voting_flair_shortcode(self) -> str | None:
+        order_of_flair = {
+            "mvp": 10,
+            "sea dog": 20,
+            "buccaneer": 20,
+            "powder monkey": 30,
+            "deck hand": 30,
+            "vouched": 35,
+            "threadiverse enjoyer": 40,
+        }
+        lowest_flair = None
+        for t in self.tags:
+            shortcode = None
+            if t.value in order_of_flair:
+                flair_prio = order_of_flair[t.value]
+                shortcode = t.value
+            elif t.tag in order_of_flair:
+                flair_prio = order_of_flair[t.tag]
+                shortcode = t.tag
+            if flair_prio < order_of_flair[lowest_flair]:
+                lowest_flair = shortcode
+        return lowest_flair
+
+    
+    def get_most_significant_voting_flair_markdown(self) -> str:
+        shortcode = self.get_most_significant_voting_flair_shortcode()
+        return lemmy_emoji.get_emoji_markdown(shortcode)
 
 
 @event.listens_for(User, "before_update")
