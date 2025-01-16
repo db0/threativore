@@ -9,6 +9,7 @@ from threativore.main import threativore
 from threativore.config import Config
 from threativore.apis.v1.base import *
 from threativore.lemmy_db import get_actor_id_from_email
+from threativore.emoji import lemmy_emoji
 
 class KoFi(Resource):
     post_parser = reqparse.RequestParser()
@@ -44,15 +45,17 @@ class KoFi(Resource):
             tag="ko-fi_tier", 
             value=tier,
             custom_emoji=tier.replace(r' ','_'),
-            expires=datetime.utcnow() + timedelta(days=Config.donation_expiration_days),
+            expires=datetime.utcnow() + 
+            timedelta(days=Config.donation_expiration_days),
         )
+        emoji_markdown = lemmy_emoji.get_emoji_markdown(tier.replace(r' ','_'))
         if data.get("is_first_subscription_payment", False) is True:
             threativore.reply_to_user_url(
                 user_url=actor_id, 
                 message=(
                     'Arr matey! Your donation to the ![a pirate chest full of doubloons](https://lemmy.dbzer0.com/pictrs/image/af140ff3-a09d-4b9c-8907-15d34d674c0e.png "booty") is acknowledged and will go towards '
                     "the upkeep of the ship. "
-                    f'You have been marked as a ![{tier}]({tier_flair} "emoji") {tier} ![{tier}]({tier_flair} "emoji")'
+                    f'You have been marked as a {emoji_markdown}{tier}{emoji_markdown}'
                     'Thank ye! ![pirate captain giving the thumbs up](https://lemmy.dbzer0.com/pictrs/image/bc10b52a-196d-4e4a-98a2-bfd2dbb10d9a.png "thumbsup")'
                 )
                     

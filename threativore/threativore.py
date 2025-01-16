@@ -11,12 +11,13 @@ import threativore.exceptions as e
 from threativore.classes.filters import ThreativoreFilters
 from threativore.classes.appeals import ThreativoreAppeals
 from threativore.classes.users import ThreativoreUsers
+from threativore.classes.governance import Governance
 from threativore.enums import EntityType, FilterAction, FilterType, UserRoleTypes
 from threativore.flask import APP, db
 from threativore.orm.filters import FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
 from threativore.orm.user import User
-from pythorhead.types.sort import CommentSortType
+from pythorhead.types.sort import CommentSortType, SortType
 from threativore.argparser import args
 from threativore.config import Config
 from threativore import utils
@@ -29,12 +30,16 @@ class Threativore:
     appeal_admins: list = []    
 
     def __init__(self, _base_lemmy):
+        self.threativore_user_url = utils.username_to_url(f"{Config.lemmy_username}@{Config.lemmy_domain}")
         self.lemmy = _base_lemmy.lemmy
         self.filters = ThreativoreFilters(self)
         self.users = ThreativoreUsers(self)
         self.appeals = ThreativoreAppeals(self)
+        self.governance = Governance(self)
         self.ensure_admin_exists()
+        self.ensure_bot_exists()
         self.prepare_appeal_objects()
+        # In order to be able to match the bot account in the DB
         if not args.api_only:
             self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
             self.standard_tasks.start()
@@ -60,6 +65,16 @@ class Threativore:
                 db.session.add(admin)
                 db.session.commit()
             admin.add_role(UserRoleTypes.ADMIN)
+
+    @logger.catch(reraise=True)
+    def ensure_bot_exists(self):
+        with APP.app_context():
+            bot = database.get_user(self.threativore_user_url)
+            if not bot:
+                bot = User(user_url=self.threativore_user_url)
+                db.session.add(bot)
+                db.session.commit()
+            bot.add_role(UserRoleTypes.ADMIN)
 
     def prepare_appeal_objects(self):
         for admin_username in Config.threativore_appeal_usernames:
@@ -213,13 +228,13 @@ class Threativore:
             entity_reported = False
             entity_banned = False
             comment_id: int = comment["comment"]["id"]
-            if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0":
-                logger.debug(f'Found comment from bot: {comment["comment"]["content"]}')
+            # if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0":
+            #     logger.debug(f'Found comment from bot: {comment["comment"]["content"]}')
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
             user_url = comment["creator"]["actor_id"]
             if database.actor_bypasses_filter(user_url):
-                logger.debug(f"Bypassing checks on user {user_url}")
+                # logger.debug(f"Bypassing checks on user {user_url}")
                 continue
             for tfilter in sorted_filters:
                 matching_string = ""
@@ -325,7 +340,7 @@ class Threativore:
 
     def check_posts_page(self, page:int=1, ids_checked_already: list[int] = []):
         logger.debug(f"Checking Posts page {page}...")
-        cm = self.lemmy.post.list(limit=10,sort=CommentSortType.New, page=page)
+        cm = self.lemmy.post.list(limit=10,sort=SortType.New, page=page)
         all_ids = [post["post"]["id"] for post in cm if post["post"]["id"] not in ids_checked_already]
         seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.POST)
         # logger.debug([seen_any_previously, len(all_ids)])
@@ -340,7 +355,7 @@ class Threativore:
                 continue
             user_url = post["creator"]["actor_id"]
             if database.actor_bypasses_filter(user_url):
-                logger.debug(f"Bypassing checks on user {user_url}")
+                # logger.debug(f"Bypassing checks on user {user_url}")
                 continue
             entity_removed = False
             entity_reported = False
@@ -505,9 +520,21 @@ class Threativore:
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
-                logger.debug([set_override_search,set_override_search.group(1),len(set_override_search.group(1)),pm["private_message"]["content"]])
                 if set_override_search:
                     self.users.parse_override_pm(set_override_search, pm)
+                set_vouch_search = re.search(
+                    r"(withdraw )?vouch for:? ?@(.*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if set_vouch_search:
+                    self.users.parse_vouch_pm(set_vouch_search, pm)
+                if re.search(
+                    r"governance",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                ):
+                    self.users.parse_pm(pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
@@ -551,6 +578,5 @@ class Threativore:
                     self.gc()
                     time.sleep(5)
                 except Exception as err:
-                    raise err
                     logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
                     time.sleep(1)

@@ -5,7 +5,6 @@ from threativore import exceptions as e
 
 
 api = Namespace('v1', 'API Version 1')
-logger.info(api.apis)
 
 from threativore.apis.models.v1 import Models
 

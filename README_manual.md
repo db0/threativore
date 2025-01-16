@@ -148,3 +148,49 @@ Where you must replace `<your email/username>` accordingly
 
 * For Ko-fi, you need to put the same email address you used to register your account in Ko-Fi
 * for liberapay, you need to put your username as it is shown in your account page.
+
+### Vouching for others
+
+Any a trusted member of the instance can vouch for others. The amount of times they can vouch can be set using `VOUCHES_PER_USER` env var. Trusted users are anyone with the `TRUSTED` role, and you can define users to automatically receive the `TRUSTED` role using the env vars `TRUSTED_TIERS` and `TRUSTED_TAGS`. 
+
+A vouched user becomes `KNOWN` to the instance, which means their comments and posts will be ignored by the threativore anti-spam filter. A vouched member can also take part in voting for the instance.
+
+To vouch for a user PM the threativore bot on your instance with the message
+
+`threativore vouch for: @<target username>`
+
+`<target username>` **has** to be prepended with a `@` and optionally allow the instance domain at the end (.e.g `@db0@lemmy.dbzer0.com`). If an instance domain is not provided at the end, the threativore instance domain will be assumed. Do not create a markdown link with the username (the UI might try to autofill that). 
+
+You can withdraw vouches for users you've vouched for using this command
+
+`threativore withdraw vouch for: @<target username>`
+
+using the same rules as before for `<target username>`
+
+## Governance
+
+You can specify one community in your instance which will be used as threativore as a governance instance, in which to run votes and discussions.
+
+Threativore will constantly poll that comm (every 15 mins) to see new posts and also updates on existing ones. When a new post is detected, it can be marked either as voting, or non-voting. Voting threads will eventually expire and be locked. Non-voting ones will stay open indefinitelly. 
+
+By default all threads are simple majority voting, but you can specify a non-voting thread by adding `governance type: sense check` in the body. Governance threads **must** include a body, or they will be locked immediately.
+
+In addition,you can add `expiry: <number in days>` where `<number in days>` is anything you want with a min of 1 day and a max of 30 days.
+
+(More voting types than simple majority will be added in the future)
+
+If it's a voting thread, the votes happen via the normal upvote/downvote arrows. Anyone can vote, but threativore only takes into account **voting** members. These can be specified automatically using `TRUSTED_TIERS`, `VOTING_TIERS`, `TRUSTED_TAGS`, and `VOTING_TAGS` in the envs. TRUSTED members of threativore by default have voting rights. Vouched-for users also have voting rights.
+
+The difference between `TRUSTED` and `VOTING` for governance, is that only `TRUSTED` can open new threads. This is subject to change in the future.
+
+When a voting thread is opened, threativore will open a "control comment" as distinguished and start editing it to tally up all valid votes cast. The votes will be represented using the user's most significant flair (The order of significance can be set using `VOTING_FLAIR_PRIORITY` env var.) with a total also posted at the end. This means a OP could have 100 of votes but only a dozen counted ones in the tally. This should prevent internal voting process from being manipulated from outsiders and having to rely on comments and manual counting.
+
+People can also leave comments, but they are not used for voting. However to make it more obvious who is commenting, until frontends are developed to display threativore flairs, threativore will reply *only to top level comments* with the user's most significant flair. This doesn't have any effect, but I hope it helps people know the weight of the one commenting. If someone doesn't have any voting rights, or significant non-voting flair, the flair defined in `OUTSIDER_EMOJI` will be used instead. 
+
+When a thread expires, it will be locked and the final tally will be posted on the "control comment"
+
+
+
+
+
+

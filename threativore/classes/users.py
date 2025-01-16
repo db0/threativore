@@ -7,6 +7,8 @@ import threativore.utils as utils
 from threativore.enums import UserRoleTypes
 from threativore.flask import db
 from threativore.orm.user import User
+from threativore.config import Config
+from threativore.emoji import lemmy_emoji
 
 
 class ThreativoreUsers:
@@ -158,3 +160,80 @@ class ThreativoreUsers:
                 pm=pm,
                 message=(f"Override has been succesfully set to `{requesting_user.email_override}`"),
             )
+
+    def parse_vouch_pm(self, vouch_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        is_withdrawn = False
+        if vouch_search.group(1):
+            is_withdrawn = True
+        target_user = vouch_search.group(2).strip().lower()
+        if '@' not in target_user: target_user = f"{target_user}@{Config.lemmy_domain}"
+        if requesting_user.user_url == utils.username_to_url(target_user):
+            raise e.ReplyException("You cannot vouch for yourself, silly!")
+        # TODO: Remove all vouches when trust is removed by admins
+        if not requesting_user.is_trusted():
+            raise e.ReplyException(
+                "Sorry, you do not have enough rights to vouch for users. "
+                "To vouch for others, you need to be in one of the following donation tiers: "
+                f"{Config.trusted_tiers} "
+                f"or have one of the following tags: {Config.trusted_tags}."
+            )
+        try:
+            if self.threativore.lemmy.user.get(username=target_user) is None:
+                raise e.ReplyException(f"user @{target_user} is not known to this instance. Please check your spelling and try again or contact the admins.")
+        except Exception:
+            raise e.ReplyException(f"user @{target_user} is not known to this instance. Please check your spelling and try again or contact the admins.")
+        if not is_withdrawn and not requesting_user.is_moderator() and database.count_user_vouches(requesting_user.id) > Config.vouches_per_user:
+            raise e.ReplyException(f"Sorry you have exceeded the maximum allowed vouches per user ({Config.vouches_per_user}). You cannot vouch for more users.")
+        vouched_user = database.get_user(utils.username_to_url(target_user))
+        if is_withdrawn:
+            if not vouched_user:
+                raise e.ReplyException(f"You attempted to withdraw your vouching for {target_user} but this vouch didn't exist.")
+            existing_vouches = database.get_tag("vouched", vouched_user.id)
+            if existing_vouches is None:
+                raise e.ReplyException(f"You attempted to withdraw your vouching for {target_user} but this vouch didn't exist.")
+            if existing_vouches.value != requesting_user.user_url:
+                raise e.ReplyException(f"You attempted to withdraw your vouching for {target_user} someone else has vouched for this user instead.")
+        elif vouched_user:
+            existing_vouches = database.get_tag("vouched", vouched_user.id)
+            if existing_vouches: 
+                if existing_vouches.value != requesting_user.user_url:
+                    raise e.ReplyException(f"You attempted to vouching for {target_user} but someone else has already vouched for them.")
+                else:
+                    raise e.ReplyException(f"You attempted to vouching for {target_user} but you have already vouched for the succesfully in the past.")
+        if not vouched_user:
+            vouched_user = self.threativore.users.ensure_user_exists(utils.username_to_url(target_user))
+        if is_withdrawn:
+            vouched_user.remove_tag("vouched")
+            logger.info(
+                f"{requesting_user.user_url} has succesfully removed vouch for {vouched_user.user_url}" 
+            )            
+            self.threativore.reply_to_pm(
+                pm=pm,
+                message=(f"You have succesfully withdrawn your vouch for {vouched_user.user_url}"),
+            )
+        else:
+            emoji_markdown = lemmy_emoji.get_emoji_markdown("vouched")
+            if emoji_markdown is None:
+                emoji_markdown = ''
+            vouched_user.set_tag(
+                tag="vouched", 
+                value=requesting_user.user_url,
+            )        
+            logger.info(
+                f"{requesting_user.user_url} has succesfully vouched for {vouched_user.user_url}" 
+            )            
+            self.threativore.reply_to_pm(
+                pm=pm,
+                message=(f'You have succesfully {emoji_markdown}vouched{emoji_markdown} for {vouched_user.user_url}. That user has received a PM informing them of this.'),
+            )
+            self.threativore.reply_to_user_url(
+                user_url=vouched_user.user_url,
+                message=(f'Good News. Trusted user {requesting_user.user_url} has {emoji_markdown}vouched{emoji_markdown} for you as a valuable member of this instance.'),
+            )
+            
