@@ -30,13 +30,16 @@ class Threativore:
     appeal_admins: list = []    
 
     def __init__(self, _base_lemmy):
+        self.threativore_user_url = utils.username_to_url(f"{Config.lemmy_username}@{Config.lemmy_domain}")
         self.lemmy = _base_lemmy.lemmy
         self.filters = ThreativoreFilters(self)
         self.users = ThreativoreUsers(self)
         self.appeals = ThreativoreAppeals(self)
         self.governance = Governance(self)
         self.ensure_admin_exists()
+        self.ensure_bot_exists()
         self.prepare_appeal_objects()
+        # In order to be able to match the bot account in the DB
         if not args.api_only:
             self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
             self.standard_tasks.start()
@@ -62,6 +65,16 @@ class Threativore:
                 db.session.add(admin)
                 db.session.commit()
             admin.add_role(UserRoleTypes.ADMIN)
+
+    @logger.catch(reraise=True)
+    def ensure_bot_exists(self):
+        with APP.app_context():
+            bot = database.get_user(self.threativore_user_url)
+            if not bot:
+                bot = User(user_url=self.threativore_user_url)
+                db.session.add(bot)
+                db.session.commit()
+            bot.add_role(UserRoleTypes.ADMIN)
 
     def prepare_appeal_objects(self):
         for admin_username in Config.threativore_appeal_usernames:
@@ -215,13 +228,13 @@ class Threativore:
             entity_reported = False
             entity_banned = False
             comment_id: int = comment["comment"]["id"]
-            if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0":
-                logger.debug(f'Found comment from bot: {comment["comment"]["content"]}')
+            # if comment['creator']['actor_id'] == "https://lemmy.dbzer0.com/u/div0":
+            #     logger.debug(f'Found comment from bot: {comment["comment"]["content"]}')
             if database.has_been_seen(comment_id, EntityType.COMMENT):
                 continue
             user_url = comment["creator"]["actor_id"]
             if database.actor_bypasses_filter(user_url):
-                logger.debug(f"Bypassing checks on user {user_url}")
+                # logger.debug(f"Bypassing checks on user {user_url}")
                 continue
             for tfilter in sorted_filters:
                 matching_string = ""
@@ -342,7 +355,7 @@ class Threativore:
                 continue
             user_url = post["creator"]["actor_id"]
             if database.actor_bypasses_filter(user_url):
-                logger.debug(f"Bypassing checks on user {user_url}")
+                # logger.debug(f"Bypassing checks on user {user_url}")
                 continue
             entity_removed = False
             entity_reported = False

@@ -5,8 +5,6 @@ from sqlalchemy import Enum, UniqueConstraint, event
 
 import threativore.exceptions as e
 from threativore.flask import db
-from threativore.emoji import lemmy_emoji
-from threativore.config import Config
 from loguru import logger
 from threativore.enums import GovernancePostType
 
@@ -30,7 +28,7 @@ class GovernancePostComment(db.Model):
         nullable=False,
         index=True,
     )
-    user = db.relationship("User", back_populates="gpost_comments")
+    user = db.relationship("User", back_populates="governance_post_comments")
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -39,12 +37,15 @@ class GovernancePostComment(db.Model):
 def before_update_user_tag_listener(mapper, connection, target):
     target.updated = datetime.utcnow()
 
+
+def get_expiry_time():
+    return datetime.utcnow() + timedelta(days=7)    
+
 class GovernancePost(db.Model):
     __tablename__ = "governance_posts"
 
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, unique=True, nullable=False, index=True)
-    post_url = db.Column(db.String(2048), unique=True, nullable=False, index=True)
     control_comment_id = db.Column(db.Integer, unique=True, nullable=True)
     post_type = db.Column(Enum(GovernancePostType), nullable=False, default=GovernancePostType.SIMPLE_MAJORITY)
     user_id = db.Column(
@@ -57,11 +58,13 @@ class GovernancePost(db.Model):
     downvotes = db.Column(db.Integer, nullable=False, default=0)
     user = db.relationship("User", back_populates="governance_posts")
     newest_comment_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    expires = db.Column(db.DateTime, default=datetime.utcnow + timedelta(days=7), nullable=False)
+    expires = db.Column(db.DateTime, default=get_expiry_time, nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    post_comments = db.relationship("GovernancePostComments", back_populates="user", cascade="all, delete-orphan")
+    post_comments = db.relationship("GovernancePostComment", back_populates="gpost", cascade="all, delete-orphan")
 
+    def is_expired(self):
+        return self.expires < datetime.utcnow()
 
 # Define event listener to update 'updated' column before each update
 @event.listens_for(GovernancePost, "before_update")

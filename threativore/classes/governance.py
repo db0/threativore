@@ -11,10 +11,12 @@ from threativore.flask import APP, db
 from threativore.enums import GovernancePostType
 from threativore import utils
 from threativore.emoji import lemmy_emoji
+import threading
 
 class Governance:
     
     governance_community_id: int = None
+    site_admins = set()
 
     def __init__(self, threativore):
         self.threativore = threativore
@@ -23,15 +25,23 @@ class Governance:
         if not self.governance_community_id:
             logger.warning("Governance community not set or not found. Governance module will be inactive")
             return
+        self.governance_tasks = threading.Thread(target=self.governance_tasks, args=(), daemon=True)
+        self.governance_tasks.start()
 
     def check_for_new_posts(self):
         logger.debug(f"Checking for new Governance posts")
-        gp = self.lemmy.post.list(community_id = self.governance_community_id, limit=10,sort=SortType.New)
+        gp = self.threativore.lemmy.post.list(community_id = self.governance_community_id, limit=10,sort=SortType.New)
         for post in gp:
             post_id = post["post"]["id"]
+            if post["post"]["removed"] is True:
+                continue
+            if post["post"]["locked"] is True:
+                continue
+            if post["post"]["deleted"] is True:
+                continue
             existing_gpost = database.get_governance_post(post_id)
             if not existing_gpost:
-                body = post["post"]["body"]
+                body = post["post"].get("body", '')
                 expiry = 7
                 expiry_regex = re.search(
                     r"expiry:? ?(\d+)",
@@ -40,6 +50,10 @@ class Governance:
                 )
                 if expiry_regex:
                     expiry = int(expiry_regex.group(1))
+                if expiry > 30:
+                    expiry == 30
+                if expiry < 1:
+                    expiry == 1
                 user_url = post["creator"]["actor_id"]
                 user: User | None = database.get_user(user_url)
                 if not user:
@@ -59,18 +73,24 @@ class Governance:
                         post_type = GovernancePostType.OTHER
                 new_gpost = GovernancePost(
                     post_id = post_id,
-                    post_url = post["post"]["url"],
+                    user_id = user.id,
                     expires = datetime.utcnow() + timedelta(days=expiry),
                     upvotes = post["counts"]["upvotes"],
                     downvotes = post["counts"]["downvotes"],
                     post_type = post_type,
-                    newest_comment_time = datetime.fromisoformat(post["counts"]["newest_comment_time"]) if post["counts"]["newest_comment_time"] else datetime.utcnow(),
+                    newest_comment_time = datetime.fromisoformat(post["counts"]["newest_comment_time"].replace('Z', '+00:00')) if post["counts"]["newest_comment_time"] else datetime.utcnow(),
                 )
                 db.session.add(new_gpost)
                 db.session.commit()
                 if not user.is_trusted():
                     self.adjust_control_comment_on_gpost(new_gpost, "This user is not trusted by this instance and therefore cannot initiate new governance posts")
-                    self.remove_gpost(new_gpost, "This user is not trusted by this instance and therefore cannot initiate new governance posts")                
+                    self.lock_gpost(new_gpost, "Threativore automatic post removal: Governance post with empty body")
+                    self.remove_gpost(new_gpost, "Threativore automatic post removal: Governance post by untrusted user")
+                    continue
+                if not body:
+                    self.adjust_control_comment_on_gpost(new_gpost, "You cannot open a governance post with an empty body.")
+                    self.lock_gpost(new_gpost, "Threativore automatic post removal: Governance post with empty body")
+                    self.remove_gpost(new_gpost, "Threativore automatic post removal: Governance post with empty body")
                     continue
                 self.adjust_control_comment_on_gpost(
                     gpost=new_gpost, 
@@ -89,7 +109,7 @@ class Governance:
             self.threativore.lemmy.comment.distinguish(gpost.control_comment_id, True)
         else:
             self.threativore.lemmy.comment.edit(
-                post_id = gpost.post_id,
+                comment_id = gpost.control_comment_id,
                 content = content
             )
 
@@ -103,10 +123,12 @@ class Governance:
         gpost.expires = datetime.utcnow()
         db.session.commit()
 
-    def get_standard_gpost_control_comment(self, gpost, user) -> str:
-        control_comment_text = f"Acknlowledged governance topic opened by {user.user_url}{''.join(user.get_all_flair_markdowns())}"
+    def get_standard_gpost_control_comment(self, gpost: GovernancePost, user: User) -> str:
+        control_comment_text = f"Acknlowledged governance topic opened by {user.user_url} {''.join(user.get_all_flair_markdowns())}"
+        if self.is_admin(user.user_url):
+            control_comment_text += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
         if gpost.post_type == GovernancePostType.SIMPLE_MAJORITY:
-            control_comment_text += '\n\n' + self.compile_voting_tallies()
+            control_comment_text += '\n\n ' + self.compile_voting_tallies(gpost)
         else:
             control_comment_text += '\n\n This is a non-voting post. Known users should leave comments with your thoughts on the subject.'
         return control_comment_text
@@ -142,12 +164,17 @@ class Governance:
             return string_counts
 
         for v in valid_votes:
-            flair_markdown = upvote_flair_markdowns.append(v["user"].get_most_significant_voting_flair_markdown())
+            flair_markdown = v["user"].get_most_significant_voting_flair_markdown()
+            
+            if self.is_admin(v["user"].user_url):
+                flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
             if v["score"] == 1:
                 upvote_flair_markdowns.append(flair_markdown)
             elif v["score"] == -1:
                 downvote_flair_markdowns.append(flair_markdown)
-        return_string = "The current tally is as follows: "
+        return_string = "This is a simple majority vote. The current tally is as follows: "
+        if gpost.is_expired():
+            return_string = "This is a simple majority vote. The final tally is as follows: "
         if len(upvote_flair_markdowns) > 10:
             upvote_flair_markdowns_counts = count_unique_flairs(upvote_flair_markdowns)
             return_string += '\n\n* For: ' + ', '.join([f"{key}({value})" for key, value in upvote_flair_markdowns_counts.items()])
@@ -157,21 +184,44 @@ class Governance:
             downvote_flair_markdowns_counts = count_unique_flairs(downvote_flair_markdowns)
             return_string += '\n* Against: ' + ', '.join([f"{key}({value})" for key, value in downvote_flair_markdowns_counts.items()])
         else:            
-            return_string += '\n( Against: ' + ', '.join(downvote_flair_markdowns)
-        return_string += f"\n*Total: {len(upvote_flair_markdowns) - len(downvote_flair_markdowns)}"
+            return_string += '\n* Against: ' + ', '.join(downvote_flair_markdowns)
+        total = len(upvote_flair_markdowns) - len(downvote_flair_markdowns)
+        if total > 0:
+            total = f"+{total}"
+        return_string += f"\n* Total: {total}"
+        if gpost.is_expired():
+            return_string += f"\n\n This vote has concluded on {gpost.expires.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+        else:
+            units_remaining = (gpost.expires - datetime.utcnow()).days
+            tu = "days"
+            if units_remaining < 1:
+                units_remaining = (gpost.expires - datetime.utcnow()).seconds
+                if units_remaining > 3600:
+                    units_remaining = round(units_remaining / 3600, 2)
+                    tu = "hours"
+                else:
+                    units_remaining = round(units_remaining / 60, 2)
+                    tu = "minutes"
+            return_string += f"\n\n This vote will complete in {units_remaining} {tu}"
         return_string += f"\n\n --- \n\n*Reminder that this is a pilot process and results of voting are not set in stone.*"
         return return_string
 
     def update_gposts(self):
         logger.debug(f"Checking known Governance posts")
         for gpost in database.get_all_active_governance_posts():
+            gpost_info = self.threativore.lemmy.post.get(gpost.post_id)
+            if gpost_info["post_view"]["post"]["removed"] is True:
+                continue
+            if gpost_info["post_view"]["post"]["locked"] is True:
+                continue
+            if gpost_info["post_view"]["post"]["deleted"] is True:
+                continue
             control_comment = self.get_standard_gpost_control_comment(gpost=gpost, user=gpost.user)
-            if gpost.expires > datetime.utcnow():
-                control_comment += "\n\n --- \n\n This governance post is now concluded. Thank you for participating!"
-                self.adjust_control_comment_on_gpost(
-                    gpost=gpost, 
-                    content=control_comment
-                )                
+            self.adjust_control_comment_on_gpost(
+                gpost=gpost, 
+                content=control_comment
+            )                
+            if gpost.expires < datetime.utcnow():
                 self.lock_gpost(gpost)
             comments = []
             more_comments = []
@@ -181,24 +231,23 @@ class Governance:
                     post_id = gpost.post_id, 
                     limit=50, 
                     page=page,
-                    max_depth=0,
-                ).get("comments", [])
+                    max_depth=1,
+                )
                 page += 1
                 comments += more_comments
-            threativore_user_url = utils.username_to_url(f"{Config.lemmy_username}@{Config.lemmy_domain}")
             for comment in comments:
                 user_url = comment["creator"]["actor_id"]
-                if user_url == threativore_user_url:
+                if user_url == self.threativore.threativore_user_url:
                     continue
                 if database.replied_to_gpost_comment(comment["comment"]["id"]):
                     continue
                 comment_user: User = self.threativore.users.ensure_user_exists(user_url)
                 flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
                 if not flair_markdown:
-                    flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
-                if comment["creator_is_admin"]:
+                    flair_markdown = comment_user.get_most_significant_non_voting_flair_markdown()
+                if self.is_admin(comment["creator"]["actor_id"]):
                     flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
-                logger.debug(f"Replying to root comment {comment["comment"]["id"]}")
+                logger.debug(f'Replying to root comment {comment["comment"]["id"]}')
                 flair_comment = self.threativore.lemmy.comment.create(
                     post_id = gpost.post_id,
                     content = flair_markdown,
@@ -229,10 +278,19 @@ class Governance:
             #TODO: Generate an image based on the title
         #TODO: Create thread. Store in DB.
         
+    def is_admin(self, user_url):
+        return user_url in self.site_admins
+    
+    @logger.catch(reraise=True)
     def governance_tasks(self):
         with APP.app_context():
             while True:
                 try:
+                    site_admins = set()
+                    site_info = self.threativore.lemmy.site.get()
+                    for admin in site_info["admins"]:
+                        site_admins.add(admin["person"]["actor_id"])
+                    self.site_admins = site_admins
                     self.update_gposts()
                     self.check_for_new_posts()
                     time.sleep(15*60)

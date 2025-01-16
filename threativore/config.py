@@ -40,6 +40,8 @@ class Config:
     vouches_per_user: int = env.int("VOUCHES_PER_USER", 2)
     outsider_emoji: str = env.str("OUTSIDER_EMOJI", None)
     admin_emoji: str = env.str("ADMIN_EMOJI", None)
+    voting_flair_priority: dict = env.dict("VOTING_FLAIR_PRIORITY", None, subcast_values=int)
+    non_voting_flair_priority: dict = env.dict("NON_VOTING_FLAIR_PRIORITY", None, subcast_values=int)
     # For use with the connection to the lemmy DB directly
     lemmy_db_host: str = env.str("LEMMY_DB_HOST", None)
     lemmy_db_username: str = env.str("LEMMY_DB_USERNAME", None)
@@ -47,4 +49,3 @@ class Config:
     lemmy_db_database: str = env.str("LEMMY_DB_DATABASE", None)
     # Governance
     governance_community: str = env.str("GOVERNANCE_COMMUNITY", None)
-    
