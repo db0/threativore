@@ -12,7 +12,6 @@ from threativore.enums import GovernancePostType
 from threativore import utils
 from threativore.emoji import lemmy_emoji
 import threading
-import math
 import random
 
 class Governance:
@@ -167,17 +166,25 @@ class Governance:
         local_non_voter_tally_str = ""
         # For local non-voters, we add one vote per 100 from the sample (so maximum +/- 10)
         if local_non_voter_tally > 0: 
-            local_non_voter_tally = math.ceil(local_non_voter_tally/100)
+            local_non_voter_tally = round(local_non_voter_tally/100,1)
             local_non_voter_tally_str = f"+{local_non_voter_tally}"
         elif local_non_voter_tally < 0:
-            local_non_voter_tally = math.floor(local_non_voter_tally/100)
+            local_non_voter_tally = round(local_non_voter_tally/100,1)
             local_non_voter_tally_str = str(local_non_voter_tally)
-        external_non_votes = external_non_votes[:1000]
-        external_vote = ""
-        if sum(external_non_votes) > 0:
-            external_vote = "+1"
-        elif sum(external_non_votes) < 0:
-            external_vote = "-1"
+        external_non_votes = sum(external_non_votes)
+        external_sentiment = ""
+        if external_non_votes > 0:
+            external_sentiment = "Positive"
+            if external_non_votes >= 100:
+                external_sentiment = "Very Positive"
+            if external_non_votes >= 1000:
+                external_sentiment = "Extremely Positive"
+        elif external_non_votes < 0:
+            external_sentiment = "Negative"
+            if external_non_votes <= 100:
+                external_sentiment = "Very Negative"
+            if external_non_votes <= 1000:
+                external_sentiment = "Extremely Negative"
         downvote_flair_markdowns = []
         upvote_flair_markdowns = []
         def count_unique_flairs(flairs_list):
@@ -213,8 +220,8 @@ class Governance:
         total = len(upvote_flair_markdowns) - len(downvote_flair_markdowns) + local_non_voter_tally
         if local_non_voter_tally:
             return_string += f"\n* Local Community: {local_non_voter_tally_str}"
-        if external_vote:
-            return_string += f"\n* Outsiders: {external_vote} *(Disregarded)*"
+        if external_sentiment:
+            return_string += f"\n* Outsider sentiment: {external_sentiment}"
         if total > 0:
             total = f"+{total}"
         return_string += f"\n* Total: {total}"
