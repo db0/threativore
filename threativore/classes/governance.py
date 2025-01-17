@@ -12,6 +12,8 @@ from threativore.enums import GovernancePostType
 from threativore import utils
 from threativore.emoji import lemmy_emoji
 import threading
+import math
+import random
 
 class Governance:
     
@@ -82,7 +84,7 @@ class Governance:
                 )
                 db.session.add(new_gpost)
                 db.session.commit()
-                if not user.is_trusted():
+                if not user.can_vote():
                     self.adjust_control_comment_on_gpost(new_gpost, "This user is not trusted by this instance and therefore cannot initiate new governance posts")
                     self.lock_gpost(new_gpost, "Threativore automatic post removal: Governance post with empty body")
                     self.remove_gpost(new_gpost, "Threativore automatic post removal: Governance post by untrusted user")
@@ -137,6 +139,8 @@ class Governance:
     def compile_voting_tallies(self,gpost: GovernancePost) -> str:
         votes = []
         valid_votes: list[dict] = []
+        local_non_votes = []
+        external_non_votes = []
         more_votes = []
         page = 1 
         while len(more_votes) >= 50 or page == 1:
@@ -145,13 +149,35 @@ class Governance:
             votes += more_votes
         for v in votes:
             voting_user = database.get_user(v["creator"]["actor_id"])
-            if voting_user and voting_user.can_vote():
+            if voting_user and (voting_user.can_vote() or self.is_admin(voting_user.user_url)):
                 valid_votes.append(
                     {
                         "user": voting_user,
                         "score": v["score"]
                     }
                 )
+            elif v["creator"]["local"]:
+                local_non_votes.append(v["score"])
+            else:
+                external_non_votes.append(v["score"])
+        # We only take a sample from the local and externals
+        random.shuffle(local_non_votes)
+        local_non_votes = local_non_votes[:1000]
+        local_non_voter_tally = sum(local_non_votes) if local_non_votes else 0
+        local_non_voter_tally_str = ""
+        # For local non-voters, we add one vote per 100 from the sample (so maximum +/- 10)
+        if local_non_voter_tally > 0: 
+            local_non_voter_tally = math.ceil(local_non_voter_tally/100)
+            local_non_voter_tally_str = f"+{local_non_voter_tally}"
+        elif local_non_voter_tally < 0:
+            local_non_voter_tally = math.floor(local_non_voter_tally/100)
+            local_non_voter_tally_str = str(local_non_voter_tally)
+        external_non_votes = external_non_votes[:1000]
+        external_vote = ""
+        if sum(external_non_votes) > 0:
+            external_vote = "+1"
+        elif sum(external_non_votes) < 0:
+            external_vote = "-1"
         downvote_flair_markdowns = []
         upvote_flair_markdowns = []
         def count_unique_flairs(flairs_list):
@@ -165,7 +191,6 @@ class Governance:
 
         for v in valid_votes:
             flair_markdown = v["user"].get_most_significant_voting_flair_markdown()
-            
             if self.is_admin(v["user"].user_url):
                 flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
             if v["score"] == 1:
@@ -179,13 +204,17 @@ class Governance:
             upvote_flair_markdowns_counts = count_unique_flairs(upvote_flair_markdowns)
             return_string += '\n\n* For: ' + ', '.join([f"{key}({value})" for key, value in upvote_flair_markdowns_counts.items()])
         else:            
-            return_string += '\n\n* For: ' + ', '.join(upvote_flair_markdowns)
+            return_string += '\n\n* For: ' + ''.join(upvote_flair_markdowns)
         if len(downvote_flair_markdowns) > 10:
             downvote_flair_markdowns_counts = count_unique_flairs(downvote_flair_markdowns)
             return_string += '\n* Against: ' + ', '.join([f"{key}({value})" for key, value in downvote_flair_markdowns_counts.items()])
         else:            
-            return_string += '\n* Against: ' + ', '.join(downvote_flair_markdowns)
-        total = len(upvote_flair_markdowns) - len(downvote_flair_markdowns)
+            return_string += '\n* Against: ' + ''.join(downvote_flair_markdowns)
+        total = len(upvote_flair_markdowns) - len(downvote_flair_markdowns) + local_non_voter_tally
+        if local_non_voter_tally:
+            return_string += f"\n* Local Community: {local_non_voter_tally_str}"
+        if external_vote:
+            return_string += f"\n* Outsiders: {external_vote} *(Disregarded)*"
         if total > 0:
             total = f"+{total}"
         return_string += f"\n* Total: {total}"
@@ -291,6 +320,7 @@ class Governance:
                     for admin in site_info["admins"]:
                         site_admins.add(admin["person"]["actor_id"])
                     self.site_admins = site_admins
+                    logger.debug(f"Site Admins: {self.site_admins}")
                     self.update_gposts()
                     self.check_for_new_posts()
                     time.sleep(15*60)
