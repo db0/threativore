@@ -142,12 +142,13 @@ If you are supporting your instance through Liberapay, or if you're using Ko-Fi 
 
 To do so, all you need to do is send a PM to the threativore bot on your instancee with the message
 
-`threativore set override: <your email/username>`
+`threativore set override: <your email/id>`
 
 Where you must replace `<your email/username>` accordingly
 
 * For Ko-fi, you need to put the same email address you used to register your account in Ko-Fi
-* for liberapay, you need to put your username as it is shown in your account page.
+* for liberapay, you need to put your user ID as it is shown in your account page.
+   ![](docs/liberapay_id.png)
 
 ### Vouching for others
 

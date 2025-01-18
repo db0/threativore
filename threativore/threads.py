@@ -12,17 +12,21 @@ from threativore.emoji import lemmy_emoji
 def process_user(data):
     if data.get("visibility") == "secret":
         return
-    logger.debug(f"Processing Liberapay patron: {data.get('patron_username')}")
+    logger.debug(f"Processing Liberapay patron: {data.get('patron_id')}({data.get('patron_username')})")
     tier = "drinking mate"
     for liberapay_tier in sorted(Config.liberapay_tiers.keys(), key=float, reverse=True):
         if float(data.get("weekly_amount")) > float(liberapay_tier):
             tier = Config.liberapay_tiers[liberapay_tier]
             logger.debug(f"Found Liberapay tier: {liberapay_tier}. Assigning tier: {tier}")
             break
-    user = database.get_user_from_override_email(data.get("patron_username"))
+    user = database.get_user_from_override_email(data.get("patron_id"))
     if not user:
-        logger.warning(f"Liberapay patron '{data.get('patron_username')}' isn't defined in the overrides!")
-        return    
+        logger.warning(f"Liberapay patron '{data.get('patron_id')}' isn't defined in the overrides!")
+        # Temporary. Remove soon.
+        user = database.get_user_from_override_email(data.get("patron_username"))
+        if not user:
+            logger.warning(f"Liberapay patron '{data.get('patron_username')}' isn't defined in the overrides!")
+            return    
     user.set_tag(
         tag="liberapay_tier", 
         value=tier,
@@ -43,8 +47,8 @@ def process_user(data):
       )
     
 def download_and_parse_csv():
-    url = 'https://liberapay.com/db0/patrons/export.csv?scope=active'
-    cookies = {'session': '1630248:800:9w_-J5CPxKtGvDtsW5R_C1JQQcP3Lemy.ro'}
+    url = f'https://liberapay.com/{Config.liberapay_username}/patrons/export.csv?scope=active'
+    cookies = {'session': Config.liberapay_cookie}
     response = requests.get(url, cookies=cookies)
     response.raise_for_status()  # Ensure we notice bad responses
 

@@ -148,6 +148,8 @@ class Governance:
             votes += more_votes
         for v in votes:
             voting_user = database.get_user(v["creator"]["actor_id"])
+            if self.is_admin(v["creator"]["actor_id"]) and not voting_user:
+                voting_user = self.threativore.users.ensure_user_exists(v["creator"]["actor_id"])
             if voting_user and (voting_user.can_vote() or self.is_admin(voting_user.user_url)):
                 valid_votes.append(
                     {
@@ -279,8 +281,7 @@ class Governance:
                     continue
                 comment_user: User = self.threativore.users.ensure_user_exists(user_url)
                 flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
-                if not flair_markdown:
-                    flair_markdown = comment_user.get_most_significant_non_voting_flair_markdown()
+                flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
                 if self.is_admin(comment["creator"]["actor_id"]):
                     flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
                 logger.debug(f'Replying to root comment {comment["comment"]["id"]}')

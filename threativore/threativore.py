@@ -556,7 +556,7 @@ class Threativore:
 
     def reply_to_user_url(self, user_url, message):
         user = self.lemmy.get_user(username=utils.url_to_username(user_url), return_user_object=True)
-        logger.debug(f"Replying to {user_url}: {user}")
+        # logger.debug(f"Replying to {user_url}: {message}")
         self.lemmy.private_message.create(
             recipient_id=user.id,
             content=message,
