@@ -19,7 +19,7 @@ def process_user(data):
             tier = Config.liberapay_tiers[liberapay_tier]
             logger.debug(f"Found Liberapay tier: {liberapay_tier}. Assigning tier: {tier}")
             break
-    user = database.get_user_from_override_email(data.get("patron_id"))
+    user = database.get_user_from_override_email(str(data.get("patron_id")))
     if not user:
         logger.warning(f"Liberapay patron '{data.get('patron_id')}' isn't defined in the overrides!")
         # Temporary. Remove soon.
