@@ -61,7 +61,7 @@ class Governance:
                     user = self.threativore.users.ensure_user_exists(user_url)
                 post_type = GovernancePostType.SIMPLE_MAJORITY
                 post_type_regex = re.search(
-                    r"governance type:? ?(simple majority voting|voting|sense check)",
+                    r"governance type:? ?(simple majority voting|voting|sense check|discussion)",
                     body,
                     re.IGNORECASE,
                 )
@@ -290,9 +290,11 @@ class Governance:
                     flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
                 if not flair_markdown:
                     flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
-
                 if self.is_admin(comment["creator"]["actor_id"]):
-                    flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
+                    if not show_all_flair:
+                        flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
+                    else:
+                        flair_markdown += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
                 logger.debug(f'Replying to root comment {comment["comment"]["id"]}')
                 flair_comment = self.threativore.lemmy.comment.create(
                     post_id = gpost.post_id,
