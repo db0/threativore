@@ -149,6 +149,7 @@ Where you must replace `<your email/username>` accordingly
 * For Ko-fi, you need to put the same email address you used to register your account in Ko-Fi
 * for liberapay, you need to put your user ID as it is shown in your account page.
    ![](docs/liberapay_id.png)
+   **Note**: If you need to troubleshoot, don't post your liberapay publicly, as someone else might send an override with your ID.
 
 ### Vouching for others
 
