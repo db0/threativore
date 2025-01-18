@@ -26,6 +26,8 @@ class User(Resource):
         '''Details about a specific user
         '''
         self.args = self.get_parser.parse_args()
+        if '@' not in username:
+            username = username + '@' + Config.lemmy_domain
         user_url = utils.username_to_url(username)
         user = database.get_user(user_url)
         if not user:
@@ -75,7 +77,9 @@ class User(Resource):
         user = database.get_user(user_url)
         if user:
             raise e.BadRequest(f"{user_url} already exists. Please use PATCH to modify it.")
-        new_user = threativore.users.create_user(user_url, override=self.args.override.lower())
+        if self.args.override:
+            override = self.args.override.lower()
+        new_user = threativore.users.create_user(user_url, override=override)
         if self.args.tags:
             for t in self.args.tags:
                 expires = None
