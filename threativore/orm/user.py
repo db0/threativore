@@ -300,8 +300,8 @@ class User(db.Model):
         return flair_markdowns
     
     @logger.catch(reraise=True)
-    def get_most_significant_voting_flair_shortcode(self) -> str | None:
-        order_of_flair = Config.voting_flair_priority
+    def get_most_significant_flair_shortcode(self, flair_priorities = Config.voting_flair_priority) -> str | None:
+        order_of_flair = flair_priorities
         lowest_flair = None
         for t in self.tags:
             shortcode = None
@@ -320,33 +320,12 @@ class User(db.Model):
 
     
     def get_most_significant_voting_flair_markdown(self) -> str:
-        shortcode = self.get_most_significant_voting_flair_shortcode()
+        shortcode = self.get_most_significant_flair_shortcode(Config.voting_flair_priority)
         return lemmy_emoji.get_emoji_markdown(shortcode)
 
-    
-    @logger.catch(reraise=True)
-    def get_most_significant_non_voting_flair_shortcode(self) -> str | None:
-        order_of_flair = Config.non_voting_flair_priority
-        lowest_flair = None
-        for t in self.tags:
-            shortcode = None
-            if t.value in order_of_flair:
-                flair_prio = order_of_flair[t.value]
-                shortcode = t.value
-            elif t.tag in order_of_flair:
-                flair_prio = order_of_flair[t.tag]
-                shortcode = t.tag
-            if not lowest_flair:
-                lowest_flair = shortcode
-                continue
-            if flair_prio < order_of_flair[lowest_flair]:
-                lowest_flair = shortcode
-        if lowest_flair is None:
-            lowest_flair = Config.outsider_emoji
-        return lowest_flair
 
     def get_most_significant_non_voting_flair_markdown(self) -> str:
-        shortcode = self.get_most_significant_non_voting_flair_shortcode()
+        shortcode = self.get_most_significant_flair_shortcode(Config.non_voting_flair_priority)
         return lemmy_emoji.get_emoji_markdown(shortcode)
 
 

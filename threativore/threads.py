@@ -22,11 +22,7 @@ def process_user(data):
     user = database.get_user_from_override_email(str(data.get("patron_id")))
     if not user:
         logger.warning(f"Liberapay patron '{data.get('patron_id')}' isn't defined in the overrides!")
-        # Temporary. Remove soon.
-        user = database.get_user_from_override_email(data.get("patron_username"))
-        if not user:
-            logger.warning(f"Liberapay patron '{data.get('patron_username')}' isn't defined in the overrides!")
-            return    
+        return
     user.set_tag(
         tag="liberapay_tier", 
         value=tier,

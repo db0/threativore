@@ -282,6 +282,9 @@ class Governance:
                 comment_user: User = self.threativore.users.ensure_user_exists(user_url)
                 flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
                 flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
+                if not flair_markdown:
+                    flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
+
                 if self.is_admin(comment["creator"]["actor_id"]):
                     flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
                 logger.debug(f'Replying to root comment {comment["comment"]["id"]}')
