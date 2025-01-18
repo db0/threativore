@@ -77,6 +77,7 @@ class User(Resource):
         user = database.get_user(user_url)
         if user:
             raise e.BadRequest(f"{user_url} already exists. Please use PATCH to modify it.")
+        override = None
         if self.args.override:
             override = self.args.override.lower()
         new_user = threativore.users.create_user(user_url, override=override)
