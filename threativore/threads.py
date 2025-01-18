@@ -63,10 +63,14 @@ def schedule_weekly_download():
         return
     if not Config.liberapay_cookie:
         return
-    logger.init("liberapay weekly download thread", status="Running")
+    logger.init("liberapay hourly download thread", status="Running")
     with APP.app_context():
-        download_and_parse_csv()
-    next_run = datetime.now() + timedelta(weeks=1)
+        try:
+            download_and_parse_csv()
+        except requests.exceptions.HTTPError as err:
+            logger.error(f"Could not download the liberapay usernames: {err}")
+            raise err
+    next_run = datetime.now() + timedelta(hours=1)
     delay = (next_run - datetime.now()).total_seconds()
     timer = threading.Timer(delay, schedule_weekly_download)
     timer.daemon = True  # Set the thread as a daemon
