@@ -15,7 +15,7 @@ def process_user(data):
     logger.debug(f"Processing Liberapay patron: {data.get('patron_id')}({data.get('patron_username')})")
     tier = "drinking mate"
     for liberapay_tier in sorted(Config.liberapay_tiers.keys(), key=float, reverse=True):
-        if float(data.get("weekly_amount")) > float(liberapay_tier):
+        if float(data.get("weekly_amount")) >= float(liberapay_tier):
             tier = Config.liberapay_tiers[liberapay_tier]
             logger.debug(f"Found Liberapay tier: {liberapay_tier}. Assigning tier: {tier}")
             break
