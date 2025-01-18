@@ -254,6 +254,9 @@ class Governance:
                 continue
             if gpost_info["post_view"]["post"]["deleted"] is True:
                 continue
+            show_all_flair = False
+            if re.search(r"show all flair", gpost_info["post_view"]["post"].get("body", ''), re.IGNORECASE):
+                show_all_flair = True
             control_comment = self.get_standard_gpost_control_comment(gpost=gpost, user=gpost.user)
             self.adjust_control_comment_on_gpost(
                 gpost=gpost, 
@@ -280,8 +283,11 @@ class Governance:
                 if database.replied_to_gpost_comment(comment["comment"]["id"]):
                     continue
                 comment_user: User = self.threativore.users.ensure_user_exists(user_url)
-                flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
-                flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
+                if show_all_flair:
+                    flair_markdown = ''.join(comment_user.get_all_flair_markdowns())
+                else:
+                    flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
+                    flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
                 if not flair_markdown:
                     flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
 

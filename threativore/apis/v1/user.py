@@ -73,10 +73,10 @@ class User(Resource):
         user_url = utils.username_to_url(username)
         if self.args.apikey not in Config.admin_api_keys:
             raise e.Unauthorized("Invalid API key")
-        logger.info(f"{Config.admin_api_keys[self.args.apikey]} is adding a new user: {user_url}")
         user = database.get_user(user_url)
         if user:
             raise e.BadRequest(f"{user_url} already exists. Please use PATCH to modify it.")
+        logger.info(f"{Config.admin_api_keys[self.args.apikey]} is adding a new user: {user_url}")
         override = None
         if self.args.override:
             override = self.args.override.lower()
