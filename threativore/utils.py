@@ -5,6 +5,7 @@ import regex as re
 
 from threativore.flask import SQLITE_MODE
 from threativore import exceptions as e
+from threativore.config import Config
 
 random.seed(random.SystemRandom().randint(0, 2**32 - 1))
 
@@ -43,3 +44,16 @@ def url_to_username(user_url: str) -> str:
     if uregex is None:
         raise e.BadRequest(f"{user_url} not a valid user URL")
     return f"{uregex.group(2)}@{uregex.group(1)}"
+
+def get_predefined_tag_from_flair(flair: str) -> str | None:
+    for tag,emoji in Config.predefined_custom_emoji_flairs.items():
+        if flair == emoji:
+            return tag
+    return None
+        
+def get_predefined_flair_from_tag(requested_tag: str) -> str | None:
+    for tag, emoji in Config.predefined_custom_emoji_flairs.items():
+        if tag == requested_tag:
+            return emoji
+    return None
+        

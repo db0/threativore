@@ -251,7 +251,11 @@ class ThreativoreUsers:
             is_removed = True
         requested_flair = flair_search.group(2).strip().lower()
         if not lemmy_emoji.is_shortcode_known(requested_flair):
-            raise e.ReplyException(f"Sorry but emoji shortcode `{requested_flair}` is unknown to this instance.")
+            original_requested_flair = requested_flair
+            requested_flair = utils.get_predefined_flair_from_tag(requested_flair)
+            if not lemmy_emoji.is_shortcode_known(requested_flair):
+                raise e.ReplyException(f"Sorry but emoji shortcode `{original_requested_flair}` is unknown to this instance.")
+        flair_tag = utils.get_predefined_tag_from_flair(requested_flair)
         target_user = flair_search.group(3).strip().lower()
         is_silent = re.search(
                     r"silently",
@@ -273,11 +277,11 @@ class ThreativoreUsers:
         if is_removed:
             if not flaired_user:
                 raise e.ReplyException(f"You attempted to remove `{requested_flair}` for `@{target_user}` but this tag didn't exist.")
-            existing_flair = database.get_tag(requested_flair, flaired_user.id)
+            existing_flair = database.get_tag(flair_tag, flaired_user.id)
             if existing_flair is None:
                 raise e.ReplyException(f"You attempted to remove `{requested_flair}` for `@{target_user}` but this tag didn't exist.")
         elif flaired_user:
-            existing_flair = database.get_tag(requested_flair, flaired_user.id)
+            existing_flair = database.get_tag(flair_tag, flaired_user.id)
             if existing_flair: 
                 raise e.ReplyException(f"You attempted to flair `@{target_user}` as `{requested_flair}` but they already have this flair.")
         if not flaired_user:
@@ -286,7 +290,7 @@ class ThreativoreUsers:
         if emoji_markdown is None:
             emoji_markdown = ''
         if is_removed:
-            flaired_user.remove_tag(requested_flair)
+            flaired_user.remove_tag(flair_tag)
             logger.info(
                 f"{requesting_user.user_url} has succesfully removed `{requested_flair}` flair for {flaired_user.user_url}" 
             )
@@ -308,7 +312,7 @@ class ThreativoreUsers:
             
         else:
             flaired_user.set_tag(
-                tag=requested_flair, 
+                tag=flair_tag, 
                 value='true',
             )        
             logger.info(
