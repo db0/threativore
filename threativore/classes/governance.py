@@ -387,7 +387,7 @@ class Governance:
                     self.update_gposts()
                     self.check_for_new_posts()
                     time.sleep(15*60)
-                    self.update_admins(0)
+                    self.update_admins()
                 except Exception as err:
                     raise err
                     logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
