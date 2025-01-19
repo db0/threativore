@@ -31,5 +31,7 @@ arg_parser.add_argument("--color", default=False, action="store_true", help="Ena
 arg_parser.add_argument('-p', '--port', action='store', default=11001, required=False, type=int, help="Provide a different port to start with")
 arg_parser.add_argument('-i', '--insecure', action="store_true", help="If set, will use http instead of https (useful for testing)")
 arg_parser.add_argument('--api_only', action="store_true", help="If set, it will just serve the API without running the threativore daemon")
+arg_parser.add_argument('--refresh_comment', action='store', required=False, type=lambda s: tuple(map(int, s.split(','))), help="Try to only refresh a specific governance comment, provide a comma-separated list of comment IDs. First the comment to reply,then its parent")
+
 args = arg_parser.parse_args()
 

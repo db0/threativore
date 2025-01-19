@@ -11,6 +11,7 @@ from threativore.flask import APP, db
 from threativore.enums import GovernancePostType
 from threativore import utils
 from threativore.emoji import lemmy_emoji
+from threativore.argparser import args
 import threading
 import random
 
@@ -55,7 +56,7 @@ class Governance:
                     expiry == 30
                 if expiry < 1:
                     expiry == 1
-                user_url = post["creator"]["actor_id"]
+                user_url = post["creator"]["actor_id"].lower()
                 user: User | None = database.get_user(user_url)
                 if not user:
                     user = self.threativore.users.ensure_user_exists(user_url)
@@ -125,7 +126,7 @@ class Governance:
         db.session.commit()
 
     def get_standard_gpost_control_comment(self, gpost: GovernancePost, user: User) -> str:
-        control_comment_text = f"Acknlowledged governance topic opened by {user.user_url} {''.join(user.get_all_flair_markdowns())}"
+        control_comment_text = f"Acknowledged governance topic opened by {user.user_url} {''.join(user.get_all_flair_markdowns())}"
         if self.is_admin(user.user_url):
             control_comment_text += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
         if gpost.post_type == GovernancePostType.SIMPLE_MAJORITY:
@@ -147,9 +148,9 @@ class Governance:
             page += 1
             votes += more_votes
         for v in votes:
-            voting_user = database.get_user(v["creator"]["actor_id"])
-            if self.is_admin(v["creator"]["actor_id"]) and not voting_user:
-                voting_user = self.threativore.users.ensure_user_exists(v["creator"]["actor_id"])
+            voting_user = database.get_user(v["creator"]["actor_id"].lower())
+            if self.is_admin(v["creator"]["actor_id"].lower()) and not voting_user:
+                voting_user = self.threativore.users.ensure_user_exists(v["creator"]["actor_id"].lower())
             if voting_user and (voting_user.can_vote() or self.is_admin(voting_user.user_url)):
                 valid_votes.append(
                     {
@@ -244,6 +245,29 @@ class Governance:
         return_string += f"\n\n --- \n\n*Reminder that this is a pilot process and results of voting are not set in stone.*"
         return return_string
 
+    def get_comment_flair(self, comment, show_all_flair: bool) -> str | None:
+        "Returns a comment_markdown if markdown is valid. Else returns None"
+        user_url = comment["creator"]["actor_id"].lower()
+        if user_url == self.threativore.threativore_user_url:
+            return
+        if database.replied_to_gpost_comment(comment["comment"]["id"]):
+            return
+        comment_user: User = self.threativore.users.ensure_user_exists(user_url)
+        if show_all_flair:
+            flair_markdown = ''.join(comment_user.get_all_flair_markdowns())
+        else:
+            flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
+            flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
+        if not flair_markdown:
+            flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
+        if self.is_admin(comment["creator"]["actor_id"].lower()):
+            if not show_all_flair:
+                flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
+            else:
+                flair_markdown += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
+        return flair_markdown
+        
+
     def update_gposts(self):
         logger.debug(f"Checking known Governance posts")
         for gpost in database.get_all_active_governance_posts():
@@ -277,24 +301,9 @@ class Governance:
                 page += 1
                 comments += more_comments
             for comment in comments:
-                user_url = comment["creator"]["actor_id"]
-                if user_url == self.threativore.threativore_user_url:
+                flair_markdown = self.get_comment_flair(comment,show_all_flair)
+                if flair_markdown is None:
                     continue
-                if database.replied_to_gpost_comment(comment["comment"]["id"]):
-                    continue
-                comment_user: User = self.threativore.users.ensure_user_exists(user_url)
-                if show_all_flair:
-                    flair_markdown = ''.join(comment_user.get_all_flair_markdowns())
-                else:
-                    flair_markdown = comment_user.get_most_significant_voting_flair_markdown()
-                    flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
-                if not flair_markdown:
-                    flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
-                if self.is_admin(comment["creator"]["actor_id"]):
-                    if not show_all_flair:
-                        flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
-                    else:
-                        flair_markdown += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
                 logger.debug(f'Replying to root comment {comment["comment"]["id"]}')
                 flair_comment = self.threativore.lemmy.comment.create(
                     post_id = gpost.post_id,
@@ -305,10 +314,25 @@ class Governance:
                     parent_id = comment["comment"]["id"],
                     comment_id = flair_comment["comment_view"]["comment"]["id"],
                     gpost_id = gpost.id,
-                    user_id = user_url
+                    user_id = comment["creator"]["actor_id"].lower()
                 )
                 db.session.add(new_gpost_comment_reply)
                 db.session.commit()
+
+    def update_single_comment_flair(self, comment_ids):
+        comment_id, parent_id = comment_ids
+        comment = self.threativore.lemmy.comment.get(comment_id)
+        parent = self.threativore.lemmy.comment.get(parent_id)
+        if not comment or not parent:
+            logger.error(f"one or both of comments {comment_ids} not found.")
+            return
+        flair_markdown = self.get_comment_flair(parent["comment_view"], True)
+        if not flair_markdown:
+            logger.error(f"comment {parent} has no flair markdown.")
+            return
+        self.threativore.lemmy.comment.edit(comment_id, flair_markdown)
+        logger.debug(flair_markdown)
+        
 
     def parse_pm(self, pm):
         governance_thread_init_search = re.search(
@@ -332,12 +356,15 @@ class Governance:
     @logger.catch(reraise=True)
     def governance_tasks(self):
         with APP.app_context():
+            if args.refresh_comment:
+                self.update_single_comment_flair(args.refresh_comment)
+                return
             while True:
                 try:
                     site_admins = set()
                     site_info = self.threativore.lemmy.site.get()
                     for admin in site_info["admins"]:
-                        site_admins.add(admin["person"]["actor_id"])
+                        site_admins.add(admin["person"]["actor_id"].lower())
                     self.site_admins = site_admins
                     logger.debug(f"Site Admins: {self.site_admins}")
                     self.update_gposts()
