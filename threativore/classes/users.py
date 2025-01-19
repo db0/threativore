@@ -318,7 +318,7 @@ class ThreativoreUsers:
             logger.info(
                 f"{requesting_user.user_url} has succesfully flaired {flaired_user.user_url} as `{requested_flair}`" 
             )
-            reply_pm = f'You have succesfully assigned `{requested_flair}`{emoji_markdown} to {flaired_user.user_url}. That user has received a PM informing them of this.'
+            reply_pm = f'You have succesfully assigned `{requested_flair}`{emoji_markdown} to {flaired_user.user_url}.'
             if is_silent: 
                 reply_pm += " They have not been notified."
             self.threativore.reply_to_pm(pm=pm,message=reply_pm)
