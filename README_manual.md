@@ -191,7 +191,22 @@ People can also leave comments, but they are not used for voting. However to mak
 
 When a thread expires, it will be locked and the final tally will be posted on the "control comment"
 
+## Adding/Removing flairs
 
+Moderators of threativore can use PMs to the bot to add remove flair from users. The user will be informed of the flair change and who requested it, unless you explicitly specify to hide it (see below)
+
+The syntax is:
+
+```
+threativore [assign|remove] flair <emoji_shortcode>: @<username> ([silently|anonymously])
+```
+
+* Use `assign` to assign the flair and `remove` to remove the flair
+* <emoji_shortcode> should be an existing `flair` emoji that is predefined in the instance.
+* <username> should be the username. Don't forget the `@` sign in front
+* You can optionally append `silently` or `anonymously` at the end. 
+   * `silently` will not inform the user at all
+   * `anonymously` will hide the username of the mod who took the action.
 
 
 

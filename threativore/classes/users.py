@@ -309,7 +309,7 @@ class ThreativoreUsers:
         else:
             flaired_user.set_tag(
                 tag=requested_flair, 
-                value=requesting_user.user_url,
+                value='true',
             )        
             logger.info(
                 f"{requesting_user.user_url} has succesfully flaired {flaired_user.user_url} as `{requested_flair}`" 
