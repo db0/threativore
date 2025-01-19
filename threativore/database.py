@@ -122,3 +122,15 @@ def replied_to_gpost_comment(parent_id):
         ).count()
         >= 1
     )
+
+
+def get_comment_flair_reply(parent_id):
+    return (
+        GovernancePostComment.query.filter(
+            GovernancePostComment.replied.is_(True),
+            GovernancePostComment.parent_id == parent_id,
+        ).first()
+    )
+
+def get_gpost(gpost_id: int):
+    return GovernancePost.query.filter_by(post_id=gpost_id).first()

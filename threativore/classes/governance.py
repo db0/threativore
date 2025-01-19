@@ -245,12 +245,12 @@ class Governance:
         return_string += f"\n\n --- \n\n*Reminder that this is a pilot process and results of voting are not set in stone.*"
         return return_string
 
-    def get_comment_flair(self, comment, show_all_flair: bool) -> str | None:
+    def get_comment_flair(self, comment, show_all_flair: bool, redo_comment_flair: bool = False) -> str | None:
         "Returns a comment_markdown if markdown is valid. Else returns None"
         user_url = comment["creator"]["actor_id"].lower()
         if user_url == self.threativore.threativore_user_url:
             return
-        if database.replied_to_gpost_comment(comment["comment"]["id"]):
+        if not redo_comment_flair and database.replied_to_gpost_comment(comment["comment"]["id"]):
             return
         comment_user: User = self.threativore.users.ensure_user_exists(user_url)
         if show_all_flair:
@@ -260,50 +260,52 @@ class Governance:
             flair_markdown += comment_user.get_most_significant_non_voting_flair_markdown()
         if not flair_markdown:
             flair_markdown = lemmy_emoji.get_emoji_markdown(Config.outsider_emoji)
-        if self.is_admin(comment["creator"]["actor_id"].lower()):
+        if self.is_admin(comment["creator"]["actor_id"].lower()): 
             if not show_all_flair:
                 flair_markdown = lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
             else:
                 flair_markdown += lemmy_emoji.get_emoji_markdown(Config.admin_emoji)
         return flair_markdown
-        
 
-    def update_gposts(self):
-        logger.debug(f"Checking known Governance posts")
-        for gpost in database.get_all_active_governance_posts():
-            gpost_info = self.threativore.lemmy.post.get(gpost.post_id)
-            if gpost_info["post_view"]["post"]["removed"] is True:
+    def update_gpost(self, gpost: GovernancePost, redo_all_comment_flair:bool = False):
+        gpost_info = self.threativore.lemmy.post.get(gpost.post_id)
+        if gpost_info["post_view"]["post"]["removed"] is True:
+            return
+        if gpost_info["post_view"]["post"]["locked"] is True:
+            return
+        if gpost_info["post_view"]["post"]["deleted"] is True:
+            return
+        show_all_flair = False
+        if re.search(r"show all flair", gpost_info["post_view"]["post"].get("body", ''), re.IGNORECASE):
+            show_all_flair = True
+        control_comment = self.get_standard_gpost_control_comment(gpost=gpost, user=gpost.user)
+        self.adjust_control_comment_on_gpost(
+            gpost=gpost, 
+            content=control_comment
+        )                
+        if gpost.expires < datetime.utcnow():
+            self.lock_gpost(gpost)
+        comments = []
+        # I wanted to do just 50 at a time, limit is ignored when max_depth is specified
+        # Test command:
+        # curl --request GET      --url 'https://lemmy.dbzer0.com/api/v3/comment/list?limit=10&max_depth=1&post_id=35858425'      --header 'accept: application/json' -s | jq '.comments[].comment.id'  | wc -l
+        comments = self.threativore.lemmy.comment.list(
+            post_id = gpost.post_id, 
+            max_depth=1,
+        )
+        for comment in comments:
+            flair_markdown = self.get_comment_flair(comment,show_all_flair, redo_all_comment_flair)
+            if flair_markdown is None:
                 continue
-            if gpost_info["post_view"]["post"]["locked"] is True:
-                continue
-            if gpost_info["post_view"]["post"]["deleted"] is True:
-                continue
-            show_all_flair = False
-            if re.search(r"show all flair", gpost_info["post_view"]["post"].get("body", ''), re.IGNORECASE):
-                show_all_flair = True
-            control_comment = self.get_standard_gpost_control_comment(gpost=gpost, user=gpost.user)
-            self.adjust_control_comment_on_gpost(
-                gpost=gpost, 
-                content=control_comment
-            )                
-            if gpost.expires < datetime.utcnow():
-                self.lock_gpost(gpost)
-            comments = []
-            more_comments = []
-            page = 1 
-            while len(more_comments) >= 50 or page == 1:
-                more_comments = self.threativore.lemmy.comment.list(
-                    post_id = gpost.post_id, 
-                    limit=50, 
-                    page=page,
-                    max_depth=1,
-                )
-                page += 1
-                comments += more_comments
-            for comment in comments:
-                flair_markdown = self.get_comment_flair(comment,show_all_flair)
-                if flair_markdown is None:
-                    continue
+            if redo_all_comment_flair:
+                existing_flair_comment = database.get_comment_flair_reply(comment["comment"]["id"])
+                if existing_flair_comment:
+                    logger.debug(f"Updating existing comment {existing_flair_comment.comment_id}")
+                    flair_comment = self.threativore.lemmy.comment.edit(
+                        comment_id = existing_flair_comment.comment_id,
+                        content = flair_markdown,
+                    )             
+            else:
                 logger.debug(f'Replying to root comment {comment["comment"]["id"]}')
                 flair_comment = self.threativore.lemmy.comment.create(
                     post_id = gpost.post_id,
@@ -317,23 +319,31 @@ class Governance:
                     user_id = comment["creator"]["actor_id"].lower()
                 )
                 db.session.add(new_gpost_comment_reply)
-                db.session.commit()
+                db.session.commit()        
 
-    def update_single_comment_flair(self, comment_ids):
-        comment_id, parent_id = comment_ids
-        comment = self.threativore.lemmy.comment.get(comment_id)
+    def update_gposts(self):
+        logger.debug(f"Checking known Governance posts")
+        for gpost in database.get_all_active_governance_posts():
+            self.update_gpost(gpost)
+
+
+    def update_single_comment_flair(self, parent_id):
+        existing_flair_comment = database.get_comment_flair_reply(parent_id)
+        if not existing_flair_comment:
+             logger.error(f"No known reply for {parent_id}.")
+             return
         parent = self.threativore.lemmy.comment.get(parent_id)
-        if not comment or not parent:
-            logger.error(f"one or both of comments {comment_ids} not found.")
-            return
-        flair_markdown = self.get_comment_flair(parent["comment_view"], True)
+        flair_markdown = self.get_comment_flair(parent["comment_view"], True, True)
         if not flair_markdown:
             logger.error(f"comment {parent} has no flair markdown.")
             return
-        self.threativore.lemmy.comment.edit(comment_id, flair_markdown)
+        self.threativore.lemmy.comment.edit(existing_flair_comment.comment_id, flair_markdown)
         logger.debug(flair_markdown)
         
-
+    def full_update_single_gpost(self, gpost_id):
+        gpost = database.get_gpost(gpost_id)
+        self.update_gpost(gpost,redo_all_comment_flair=True)
+        
     def parse_pm(self, pm):
         governance_thread_init_search = re.search(
             r"governance init thread:? ?(.*)",
@@ -352,24 +362,32 @@ class Governance:
         
     def is_admin(self, user_url):
         return user_url in self.site_admins
-    
+
+    def update_admins(self):
+        site_admins = set()
+        site_info = self.threativore.lemmy.site.get()
+        for admin in site_info["admins"]:
+            site_admins.add(admin["person"]["actor_id"].lower())
+        self.site_admins = site_admins
+        logger.debug(f"Site Admins: {self.site_admins}")
+        
+
     @logger.catch(reraise=True)
     def governance_tasks(self):
+        self.update_admins()
         with APP.app_context():
-            if args.refresh_comment:
+            if args.refresh_comment is not None:
                 self.update_single_comment_flair(args.refresh_comment)
-                return
+                exit(0)
+            if args.refresh_all_gpost_comments is not None:
+                self.full_update_single_gpost(args.refresh_all_gpost_comments)
+                exit(0)
             while True:
                 try:
-                    site_admins = set()
-                    site_info = self.threativore.lemmy.site.get()
-                    for admin in site_info["admins"]:
-                        site_admins.add(admin["person"]["actor_id"].lower())
-                    self.site_admins = site_admins
-                    logger.debug(f"Site Admins: {self.site_admins}")
                     self.update_gposts()
                     self.check_for_new_posts()
                     time.sleep(15*60)
+                    self.update_admins(0)
                 except Exception as err:
                     raise err
                     logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
