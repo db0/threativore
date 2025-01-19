@@ -237,3 +237,93 @@ class ThreativoreUsers:
                 message=(f'Good News. Trusted user {requesting_user.user_url} has {emoji_markdown}vouched{emoji_markdown} for you as a valuable member of this instance.'),
             )
             
+    def parse_flair_pm(self, flair_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        if not requesting_user.can_do_user_operations():
+            raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
+        is_removed = False
+        if flair_search.group(1) == 'remove':
+            is_removed = True
+        requested_flair = flair_search.group(2).strip().lower()
+        if not lemmy_emoji.is_shortcode_known(requested_flair):
+            raise e.ReplyException(f"Sorry but emoji shortcode `{requested_flair}` is unknown to this instance.")
+        target_user = flair_search.group(3).strip().lower()
+        is_silent = re.search(
+                    r"silently",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+        )
+        is_anonymous = re.search(
+                    r"anonymously",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+        )
+        if '@' not in target_user: target_user = f"{target_user}@{Config.lemmy_domain}"
+        try:
+            if self.threativore.lemmy.user.get(username=target_user) is None:
+                raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        except Exception:
+            raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        flaired_user = database.get_user(utils.username_to_url(target_user))
+        if is_removed:
+            if not flaired_user:
+                raise e.ReplyException(f"You attempted to remove `{requested_flair}` for `@{target_user}` but this tag didn't exist.")
+            existing_flair = database.get_tag(requested_flair, flaired_user.id)
+            if existing_flair is None:
+                raise e.ReplyException(f"You attempted to remove `{requested_flair}` for `@{target_user}` but this tag didn't exist.")
+        elif flaired_user:
+            existing_flair = database.get_tag(requested_flair, flaired_user.id)
+            if existing_flair: 
+                raise e.ReplyException(f"You attempted to flair `@{target_user}` as `{requested_flair}` but they already have this flair.")
+        if not flaired_user:
+            flaired_user = self.threativore.users.ensure_user_exists(utils.username_to_url(target_user))
+        emoji_markdown = lemmy_emoji.get_emoji_markdown(requested_flair)
+        if emoji_markdown is None:
+            emoji_markdown = ''
+        if is_removed:
+            flaired_user.remove_tag(requested_flair)
+            logger.info(
+                f"{requesting_user.user_url} has succesfully removed `{requested_flair}` flair for {flaired_user.user_url}" 
+            )
+            reply_pm = f"You have succesfully removed `{requested_flair}` flair from  {flaired_user.user_url}"
+            if is_silent: 
+                reply_pm += " They have not been notified."            
+            self.threativore.reply_to_pm(
+                pm=pm,
+                message=(reply_pm),
+            )
+            if not is_silent:
+                origin_user = requesting_user.user_url
+                if is_anonymous:
+                    origin_user = "an admin"
+                self.threativore.reply_to_user_url(
+                    user_url=flaired_user.user_url,
+                    message=(f'{origin_user} has removed flair `{requested_flair}`{emoji_markdown} from you.'),
+                )
+            
+        else:
+            flaired_user.set_tag(
+                tag=requested_flair, 
+                value=requesting_user.user_url,
+            )        
+            logger.info(
+                f"{requesting_user.user_url} has succesfully flaired {flaired_user.user_url} as `{requested_flair}`" 
+            )
+            reply_pm = f'You have succesfully assigned `{requested_flair}`{emoji_markdown} to {flaired_user.user_url}. That user has received a PM informing them of this.'
+            if is_silent: 
+                reply_pm += " They have not been notified."
+            self.threativore.reply_to_pm(pm=pm,message=reply_pm)
+            if not is_silent:
+                origin_user = requesting_user.user_url
+                if is_anonymous:
+                    origin_user = "an admin"
+                self.threativore.reply_to_user_url(
+                    user_url=flaired_user.user_url,
+                    message=(f'{origin_user} has assigned flair `{requested_flair}`{emoji_markdown} to you.'),
+                )
+            

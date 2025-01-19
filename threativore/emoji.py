@@ -25,15 +25,18 @@ class LemmyEmoji:
                 logger.debug("Sleeping for 5 minutes")
                 time.sleep(300)
 
+    def is_shortcode_known(self,emoji_shortcode):
+        return emoji_shortcode in self.emoji_cache
+    
     # TODO: Move to pythorhead?
     def get_emoji_url(self, emoji_shortcode):
         return self.emoji_cache.get(emoji_shortcode, {}).get("image_url")
                 
     # TODO: Move to pythorhead?
     def get_emoji_markdown(self, emoji_shortcode):
-        if emoji_shortcode not in self.emoji_cache:
+        if not self.is_shortcode_known(emoji_shortcode):
             return ""
         emoji_dict = self.emoji_cache[emoji_shortcode]
         return f'![{emoji_dict["alt_text"]}]({emoji_dict["image_url"]} "{emoji_dict["shortcode"]}") '
-                
+
 lemmy_emoji = LemmyEmoji(base_lemmy)

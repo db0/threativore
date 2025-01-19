@@ -523,12 +523,19 @@ class Threativore:
                 if set_override_search:
                     self.users.parse_override_pm(set_override_search, pm)
                 set_vouch_search = re.search(
-                    r"(withdraw )?vouch for:? ?@(.*)",
+                    r"(withdraw )?vouch for:? ?@(\S*)",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
                 if set_vouch_search:
                     self.users.parse_vouch_pm(set_vouch_search, pm)
+                set_flair_search = re.search(
+                    r"(assign|remove) flair ([a-z_]+):? ?@(\S*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if set_flair_search:
+                    self.users.parse_flair_pm(set_flair_search, pm)
                 if re.search(
                     r"governance",
                     pm["private_message"]["content"],
