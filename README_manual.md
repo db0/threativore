@@ -208,6 +208,10 @@ threativore [assign|remove] flair <emoji_shortcode>: @<username> ([silently|anon
    * `silently` will not inform the user at all
    * `anonymously` will hide the username of the mod who took the action.
 
+The flair name can be either the tag set in threativore, or the emoji shortcode set in lemmy. As an example, either of these two will have the same effect (assuming your home instance is `lemmy.dbzer0.com`):
 
+```threativore assign flair pirate: @db0```
+
+```threativore assign flair jolly_roger: @db0@lemmy.dbzer0.com```
 
 
