@@ -303,6 +303,7 @@ class User(db.Model):
     def get_most_significant_flair_shortcode(self, flair_priorities = Config.voting_flair_priority) -> str | None:
         order_of_flair = flair_priorities
         lowest_flair = None
+        lowest_tag = None
         for t in self.tags:
             shortcode = None
             if t.value in order_of_flair:
@@ -313,9 +314,13 @@ class User(db.Model):
                 shortcode = t.tag
             if not lowest_flair:
                 lowest_flair = shortcode
+                lowest_tag = t
                 continue
             if flair_prio < order_of_flair[lowest_flair]:
                 lowest_flair = shortcode
+                lowest_tag = t                
+        if t.custom_emoji:
+            lowest_flair = t.custom_emoji
         if lowest_flair in Config.predefined_custom_emoji_flairs:
             lowest_flair = Config.predefined_custom_emoji_flairs[lowest_flair]
         return lowest_flair
