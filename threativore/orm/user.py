@@ -316,6 +316,8 @@ class User(db.Model):
                 continue
             if flair_prio < order_of_flair[lowest_flair]:
                 lowest_flair = shortcode
+        if lowest_flair in Config.predefined_custom_emoji_flairs:
+            lowest_flair = Config.predefined_custom_emoji_flairs[lowest_flair]
         return lowest_flair
 
     

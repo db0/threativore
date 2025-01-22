@@ -333,7 +333,7 @@ class Governance:
              logger.error(f"No known reply for {parent_id}.")
              return
         parent = self.threativore.lemmy.comment.get(parent_id)
-        flair_markdown = self.get_comment_flair(parent["comment_view"], True, True)
+        flair_markdown = self.get_comment_flair(parent["comment_view"], False, True)
         if not flair_markdown:
             logger.error(f"comment {parent} has no flair markdown.")
             return
