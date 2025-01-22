@@ -233,7 +233,7 @@ class Governance:
         downvotes = len(downvote_flair_markdowns)
         total_votes = upvotes + downvotes + local_non_voter_tally
         if total_votes > 0:
-            percentage = (upvotes / total_votes) * 100
+            percentage = round(upvotes / total_votes, 2) * 100
         else:
             percentage = 0
         return_string += f"\n* Percentage: {percentage:.2f}%"
