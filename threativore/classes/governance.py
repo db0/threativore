@@ -229,9 +229,10 @@ class Governance:
             total = f"+{total}"
         return_string += f"\n* Total: {total}"
         upvotes = len(upvote_flair_markdowns)
-        upvotes += local_non_voter_tally
         downvotes = len(downvote_flair_markdowns)
         total_votes = upvotes + downvotes + local_non_voter_tally
+        upvotes += local_non_voter_tally
+        
         if total_votes > 0:
             percentage = round(upvotes / total_votes, 2) * 100
         else:
