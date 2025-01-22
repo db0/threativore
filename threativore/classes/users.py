@@ -200,6 +200,8 @@ class ThreativoreUsers:
             if existing_vouches.value != requesting_user.user_url:
                 raise e.ReplyException(f"You attempted to withdraw your vouching for {target_user} someone else has vouched for this user instead.")
         elif vouched_user:
+            if vouched_user.can_vote():
+                raise e.ReplyException(f"You attempted to vouch for {target_user} but this user already had voting rights.")
             existing_vouches = database.get_tag("vouched", vouched_user.id)
             if existing_vouches: 
                 if existing_vouches.value != requesting_user.user_url:
