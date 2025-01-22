@@ -250,6 +250,8 @@ class ThreativoreUsers:
         if flair_search.group(1) == 'remove':
             is_removed = True
         requested_flair = flair_search.group(2).strip().lower()
+        if flair_search == "vouched":
+            raise e.ReplyException(f"Sorry, but you cannot {flair_search.group(1)} the `vouched` flair manually. Use the `vouch for` syntax instead.")
         if not lemmy_emoji.is_shortcode_known(requested_flair):
             original_requested_flair = requested_flair
             requested_flair = utils.get_predefined_flair_from_tag(requested_flair)
