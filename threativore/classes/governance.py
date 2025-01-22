@@ -228,6 +228,15 @@ class Governance:
         if total > 0:
             total = f"+{total}"
         return_string += f"\n* Total: {total}"
+        upvotes = len(upvote_flair_markdowns)
+        upvotes += local_non_voter_tally
+        downvotes = len(downvote_flair_markdowns)
+        total_votes = upvotes + downvotes + local_non_voter_tally
+        if total_votes > 0:
+            percentage = (upvotes / total_votes) * 100
+        else:
+            percentage = 0
+        return_string += f"\n* Percentage: {percentage:.2f}%"
         if gpost.is_expired():
             return_string += f"\n\n This vote has concluded on {gpost.expires.strftime('%Y-%m-%d %H:%M:%S UTC')}"
         else:
