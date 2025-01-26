@@ -2,7 +2,7 @@ import regex as re
 import time
 from loguru import logger
 from threativore.config import Config
-from pythorhead.types.sort import CommentSortType, SortType
+from pythorhead.types.sort import SortType
 import threativore.database as database
 from threativore.orm.governance import GovernancePost, GovernancePostComment
 from threativore.orm.user import User
@@ -174,20 +174,32 @@ class Governance:
         elif local_non_voter_tally < 0:
             local_non_voter_tally = round(local_non_voter_tally/100,1)
             local_non_voter_tally_str = str(local_non_voter_tally)
-        external_non_votes = sum(external_non_votes)
         external_sentiment = ""
-        if external_non_votes > 0:
-            external_sentiment = "Positive"
-            if external_non_votes >= 100:
+        positive_external_votes = sum([1 for vote in external_non_votes if vote > 0])
+        negative_external_votes = sum([1 for vote in external_non_votes if vote < 0])
+        external_non_votes_sum = sum(external_non_votes)
+        if len(external_non_votes) > 10 and abs(positive_external_votes - negative_external_votes) <= 3:
+            external_sentiment = "Controversial"
+        elif external_non_votes_sum > 0:
+            external_sentiment = "Sympathetic"
+            if external_non_votes_sum >= 10:
+                external_sentiment = "Positive"
+            if external_non_votes_sum >= 50:
                 external_sentiment = "Very Positive"
-            if external_non_votes >= 1000:
-                external_sentiment = "Extremely Positive"
-        elif external_non_votes < 0:
-            external_sentiment = "Negative"
-            if external_non_votes <= 100:
-                external_sentiment = "Very Negative"
-            if external_non_votes <= 1000:
-                external_sentiment = "Extremely Negative"
+            if external_non_votes_sum >= 100:
+                external_sentiment = "Supportive"
+            if external_non_votes_sum >= 1000:
+                external_sentiment = "Solidarity"
+        elif external_non_votes_sum < 0:
+           external_sentiment = "Skeptical"
+           if external_non_votes_sum <= -10:
+               external_sentiment = "Negative"
+           if external_non_votes_sum <= -50:
+               external_sentiment = "Very Negative"
+           if external_non_votes_sum <= -100:
+               external_sentiment = "Critical"
+           if external_non_votes_sum <= -1000:
+               external_sentiment = "Resistance"
         downvote_flair_markdowns = []
         upvote_flair_markdowns = []
         def count_unique_flairs(flairs_list):

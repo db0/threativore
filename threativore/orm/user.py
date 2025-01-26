@@ -312,6 +312,8 @@ class User(db.Model):
             elif t.tag in order_of_flair:
                 flair_prio = order_of_flair[t.tag]
                 shortcode = t.tag
+            else:
+                continue
             if not lowest_flair:
                 lowest_flair = shortcode
                 lowest_tag = t
