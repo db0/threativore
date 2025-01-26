@@ -57,3 +57,12 @@ class Models:
         self.input_model_kofi_webhook_data = api.model('Ko-fi Webhook Data', {
             'data': fields.Nested(self.input_model_kofi_webhook),
         })
+        self.response_model_open_votes = api.model('OpenVotes', {
+            'post_url': fields.String(description="URL of the post", example="lemmy.dbzer0.com/post/36114134"),
+            'control_comment_url': fields.String(description="URL of the control comment", example="lemmy.dbzer0.com/comment/16153945"),
+            'post_type': fields.String(description="Type of the post", example="SIMPLE_MAJORITY", enum=[i.name for i in enums.GovernancePostType]),
+            'user_url': fields.String(description="URL of the user", example="https://lemmy.dbzer0.com/u/flatworm7591"),
+            'newest_comment_time': fields.DateTime(description="Time of the newest comment"),
+            'expires': fields.DateTime(description="Expiration time"),
+            'created': fields.DateTime(description="Creation time"),
+        })

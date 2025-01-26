@@ -7,6 +7,7 @@ import threativore.exceptions as e
 from threativore.flask import db
 from loguru import logger
 from threativore.enums import GovernancePostType
+from threativore.config import Config
 
 
 class GovernancePostComment(db.Model):
@@ -65,6 +66,17 @@ class GovernancePost(db.Model):
 
     def is_expired(self):
         return self.expires < datetime.utcnow()
+    
+    def get_details(self):
+        return {
+            "post_url": f"{Config.lemmy_domain}/post/{self.post_id}",
+            "control_comment_url": f"{Config.lemmy_domain}/comment/{self.control_comment_id}",
+            "post_type": self.post_type.name,
+            "user_url": self.user.user_url,
+            "newest_comment_time": self.newest_comment_time,
+            "expires": self.expires,
+            "created": self.created,
+        }
 
 # Define event listener to update 'updated' column before each update
 @event.listens_for(GovernancePost, "before_update")

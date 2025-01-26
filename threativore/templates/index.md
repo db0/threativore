@@ -1,4 +1,4 @@
-# Fediseer
+# Threativore
 
 This is a [FOSS service](https://github.com/db0/threativore) to help Lemmy instances detect and avoid spam and also serve as a companion app to add more functionalities
 

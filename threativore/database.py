@@ -5,6 +5,7 @@ from threativore.orm.seen import Seen
 from threativore.orm.user import User, UserRole, UserTag
 from threativore.orm.governance import GovernancePost, GovernancePostComment
 from threativore.flask import db
+from threativore.enums import GovernancePostType
 from sqlalchemy.sql import exists
 from sqlalchemy import func, or_, and_, not_
 
@@ -134,3 +135,9 @@ def get_comment_flair_reply(parent_id):
 
 def get_gpost(gpost_id: int):
     return GovernancePost.query.filter_by(post_id=gpost_id).first()
+
+def get_open_votes():
+    return GovernancePost.query.filter(
+        GovernancePost.expires > datetime.utcnow(),
+        GovernancePost.post_type == GovernancePostType.SIMPLE_MAJORITY,
+    ).all()
