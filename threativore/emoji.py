@@ -37,6 +37,6 @@ class LemmyEmoji:
         if not self.is_shortcode_known(emoji_shortcode):
             return ""
         emoji_dict = self.emoji_cache[emoji_shortcode]
-        return f'![{emoji_dict["alt_text"]}]({emoji_dict["image_url"]} "{emoji_dict["shortcode"]}") '
+        return f'![{emoji_dict["alt_text"]}]({emoji_dict["image_url"]} "emoji {emoji_dict["shortcode"]}") '
 
 lemmy_emoji = LemmyEmoji(base_lemmy)
