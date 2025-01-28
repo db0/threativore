@@ -22,6 +22,7 @@ class ThreativoreFilters:
         reason: str,
         filter_action: FilterAction,
         filter_type: FilterType,
+        filter_scope: str,
         description: str | Any = None,
     ):
         user = database.get_user(user_url)
@@ -30,8 +31,11 @@ class ThreativoreFilters:
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to add filters")
         existing_filter = database.get_filter(filter)
-        if existing_filter:
+        if existing_filter and existing_filter.scope == filter_scope:
             raise e.ReplyException(f"Filter already exists: {existing_filter.regex} - {existing_filter.filter_type}")
+        community_scope_search = self.threativore.community_scope_search.search(filter_scope)
+        if not community_scope_search and filter_scope not in {'global', 'instance'}:
+            raise e.ReplyException(f"Invalid filter scope: {filter_scope}.\n\nAllowed are: `global`, `instance`, `community::[community_name]`")
         new_filter = Filter(
             regex=filter,
             user_id=user.id,
@@ -39,18 +43,19 @@ class ThreativoreFilters:
             reason=reason,
             filter_action=filter_action,
             filter_type=filter_type,
+            scope=filter_scope,
         )
         db.session.add(new_filter)
         db.session.commit()
         logger.info(f"{user_url} just added {filter_type.name.lower()} filter '{filter}' with action {filter_action.name}")
 
-    def remove_filter(self, filter: str, user_url: str):
+    def remove_filter(self, filter: str, user_url: str, filter_scope = 'global'):
         user = database.get_user(user_url)
         if not user:
             raise e.ThreativoreException(f"{user_url} not known")
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to remove filters")
-        existing_filter = database.get_filter(filter)
+        existing_filter = database.get_filter(filter_regex=filter, filter_scope=filter_scope)
         if not existing_filter:
             return
         db.session.delete(existing_filter)
@@ -64,6 +69,7 @@ class ThreativoreFilters:
         reason: str | None = None,
         filter_action: FilterAction | None = None,
         filter_type: FilterType | None = None,
+        filter_scope: str = 'global',
         description: str | None = None,
     ) -> Filter:
         user = database.get_user(user_url)
@@ -71,7 +77,7 @@ class ThreativoreFilters:
             raise e.ThreativoreException(f"{user_url} not known")
         if not user.can_do_filters():
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to modify filters")
-        existing_filter = database.get_filter(existing_filter_regex)
+        existing_filter = database.get_filter(existing_filter_regex, filter_scope=filter_scope)
         if not existing_filter:
             raise e.ReplyException(f"filter {existing_filter_regex} does not exist.")
         if new_filter_regex is not None:
@@ -103,7 +109,7 @@ class ThreativoreFilters:
         filter_regex = filter_search.group(3).strip()
         filter_method = filter_search.group(1).lower()
         if filter_method in ["add", "modify"]:
-            filter_reason_search = re.search(r"reason: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+            filter_reason_search = re.search(r"reason: ?`([^`]+)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
             filter_description_search = re.search(r"description: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
             filter_description = None
             if filter_description_search:
@@ -113,6 +119,10 @@ class ThreativoreFilters:
             filter_action = None
             if filter_action_search:
                 filter_action = FilterAction[filter_action_search.group(1).upper()]
+            filter_scope_search = re.search(rf"scope: ?`([^`]+)`", pm["private_message"]["content"], re.IGNORECASE)
+            filter_scope = 'global'
+            if filter_scope_search:
+                filter_scope = filter_scope_search.group(1).lower()
             if filter_method == "add":
                 if not filter_reason_search:
                     raise e.ReplyException("New filter needs reason")
@@ -126,6 +136,7 @@ class ThreativoreFilters:
                     reason=filter_reason,
                     filter_action=filter_action,
                     filter_type=filter_type,
+                    filter_scope=filter_scope,
                     description=filter_description,
                 )
                 self.threativore.reply_to_pm(
@@ -137,6 +148,7 @@ class ThreativoreFilters:
                         f"* reason: {filter_reason}\n"
                         f"* filter_action: {filter_action.name}\n"
                         f"* filter_type: {filter_type.name}\n"
+                        f"* filter_scope: {filter_scope}\n"
                         f"* description: {filter_description}"
                     ),
                 )
@@ -155,6 +167,7 @@ class ThreativoreFilters:
                     reason=filter_reason,
                     filter_action=filter_action,
                     filter_type=filter_type,
+                    filter_scope=filter_scope,
                     description=filter_description,
                 )
                 self.threativore.reply_to_pm(
@@ -170,7 +183,7 @@ class ThreativoreFilters:
                     ),
                 )
         if filter_method == "remove":
-            self.remove_filter(filter=filter_regex,user_url=user_url)
+            self.remove_filter(filter=filter_regex,user_url=user_url,filter_scope=filter_scope)
             self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Filter has been succesfully remmoved:\n\n\n" "---\n" f"* regex: `{filter_regex}`"),

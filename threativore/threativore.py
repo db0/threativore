@@ -28,6 +28,7 @@ from threativore.webhooks import webhook_parser
 class Threativore:
 
     appeal_admins: list = []    
+    community_scope_search = re.compile(r"community::(\w+)", re.IGNORECASE)
 
     def __init__(self, _base_lemmy):
         self.threativore_user_url = utils.username_to_url(f"{Config.lemmy_username}@{Config.lemmy_domain}")
@@ -88,6 +89,20 @@ class Threativore:
         logger.debug("Checking Reports...")
         self.resolve_reports()
 
+    def is_scope_matching(self, scope, community):
+        if scope == 'instance' and community["local"] is False:
+            return False
+        if scope not in {'instance', 'global'}:
+            community_scope_search = self.community_scope_search.search(scope)
+            # Category scopes are always for local comms
+            if (
+                community_scope_search 
+                and community["local"] is True 
+                and community["name"] != community_scope_search.group(1)
+            ):
+                return False
+        return True
+
     def resolve_reports(self):
         rl = self.lemmy.comment.report_list(unresolved_only=False, limit=5)
         for report in self.lemmy.post.report_list():
@@ -96,8 +111,8 @@ class Threativore:
         comment_filters = database.get_all_filters(FilterType.COMMENT)
         report_filters = database.get_all_filters(FilterType.REPORT)
         username_filters = database.get_all_filters(FilterType.USERNAME)
-        sorted_filters = sorted(report_filters + comment_filters + username_filters, key=lambda x: x.filter_action.value)
-        for report in rl:
+        sorted_filters = sorted(report_filters + comment_filters + username_filters, key=lambda x: x.filter_action.value)        
+        for report in rl:            
             if "comment_report" in report.keys():
                 item_type = "comment"
                 target_type_enum = EntityType.COMMENT
@@ -114,6 +129,8 @@ class Threativore:
                     break
                 matching_string = ""
                 matching_content = ""
+                if not self.is_scope_matching(tfilter.scope, report["community"]):
+                    continue
                 if tfilter.filter_type in [FilterType.REPORT,FilterType.COMMENT]:
                     actor_id = report[f'{item_type}_creator']['actor_id']
                     if item_type == "comment":
@@ -236,12 +253,16 @@ class Threativore:
             if database.actor_bypasses_filter(user_url):
                 # logger.debug(f"Bypassing checks on user {user_url}")
                 continue
+            if comment["comment"]["removed"] or comment["comment"]["deleted"]:
+                continue
             for tfilter in sorted_filters:
                 matching_string = ""
                 matching_content = ""
                 if entity_removed:
                     break
                 if entity_reported and tfilter.filter_action == FilterAction.REPORT:
+                    continue
+                if not self.is_scope_matching(tfilter.scope, comment["community"]):
                     continue
                 if tfilter.filter_type == FilterType.COMMENT:
                     filter_match = re.search(tfilter.regex, comment["comment"]["content"], re.IGNORECASE)
@@ -351,6 +372,10 @@ class Threativore:
         sorted_filters = sorted(comment_filters + username_filters + url_filters, key=lambda x: x.filter_action.value)
         for post in cm:
             post_id: int = post["post"]["id"]
+            # if 'asdasdasdasdasd' in post['post'].get('url',''):
+            #     logger.debug(f'Found test post url: {post["post"]["id"]} from {post["creator"]["name"]} in community {post["community"]["name"]}')
+            # if 'asdasdasdasdasd' in post['post'].get('body',''):
+            #     logger.debug(f'Found test post body: {post["post"]["id"]} from {post["creator"]["name"]} in community {post["community"]["name"]}')
             if database.has_been_seen(post_id, EntityType.POST):
                 continue
             user_url = post["creator"]["actor_id"]
@@ -366,6 +391,8 @@ class Threativore:
                 if entity_removed:
                     break
                 if entity_reported and tfilter.filter_action == FilterAction.REPORT:
+                    continue
+                if not self.is_scope_matching(tfilter.scope, post["community"]):
                     continue
                 matched_filter = False
                 if tfilter.filter_type == FilterType.COMMENT:
@@ -586,4 +613,5 @@ class Threativore:
                     time.sleep(5)
                 except Exception as err:
                     logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
+                    raise err
                     time.sleep(1)

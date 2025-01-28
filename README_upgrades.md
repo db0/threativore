@@ -1,3 +1,11 @@
+# Upgrade from 0.10.0 0.11.0
+
+Version 0.11.0 adds a new DB column in one table. Use this command to adjust your sqlite DB
+
+```bash
+sqlite3 threativore.db "ALTER TABLE filters ADD COLUMN scope TEXT NOT NULL DEFAULT 'global';"
+sqlite3 threativore.db "CREATE INDEX idx_filters_scope ON filters(scope);"
+```
 # Upgrade from 0.9.0 to 0.10.0
 
 Version 0.10.0 adds a new DB column in one table. Use this command to adjust your sqlite DB

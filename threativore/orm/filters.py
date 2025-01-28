@@ -75,6 +75,7 @@ class Filter(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)
     regex: str = db.Column(db.Text, index=True)
     description: str = db.Column(db.Text, nullable=True)
+    scope: str = db.Column(db.Text, nullable=False, default='global', index=True)
     reason: str = db.Column(db.Text, nullable=False)
     filter_action: FilterAction = db.Column(Enum(FilterAction), nullable=False)
     filter_type: FilterType = db.Column(Enum(FilterType), nullable=False)

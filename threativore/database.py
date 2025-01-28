@@ -10,7 +10,11 @@ from sqlalchemy.sql import exists
 from sqlalchemy import func, or_, and_, not_
 
 
-def get_all_filters(filter_type: FilterType, regex_search: str | None = None) -> list[Filter]:
+def get_all_filters(
+        filter_type: FilterType, 
+        regex_search: str | None = None,
+        filter_scope: str | None = None,
+    ) -> list[Filter]:
     query = Filter.query.filter_by(
         filter_type=filter_type,
     )
@@ -18,15 +22,23 @@ def get_all_filters(filter_type: FilterType, regex_search: str | None = None) ->
         query = query.filter(
             Filter.regex.like(f"%{regex_search}%"),
         )
+    if filter_scope is not None:
+        query = query.filter_by(scope=filter_scope)
     return query.all()
 
 
-def does_filter_exist(filter_regex: str) -> bool:
-    return Filter.query.filter_by(regex=filter_regex).count() == 1
+def does_filter_exist(filter_regex: str, filter_scope: str = 'global') -> bool:
+    return Filter.query.filter_by(
+        regex=filter_regex,
+        scope=filter_scope,
+    ).count() == 1
 
 
-def get_filter(filter_regex: str) -> Filter:
-    return Filter.query.filter_by(regex=filter_regex).first()
+def get_filter(filter_regex: str, filter_scope: str = 'global') -> Filter:
+    return Filter.query.filter_by(
+        regex=filter_regex,
+        scope=filter_scope,
+    ).first()
 
 def find_appeal_by_user(creator_id: int, filter_match_id: int) -> FilterAppeal:
     return FilterAppeal.query.filter(

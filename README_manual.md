@@ -16,6 +16,7 @@ Send the PM in the following markdown format
 threativore add comment filter: `trial period`
 reason: `Spam comment`
 action: `REMOVE`
+scope: `global`
 description: `Known spam string`
 ```
 
@@ -28,13 +29,17 @@ The various fields are:
 * filter: the regexp to use when searching posts
 * reason: the reason to use for the modlog
 * action: what type of action to take when this filter is triggered. The options are
-   * REMOVE: Remove the comment/post
-   * BAN7: Remove and Ban for 7 days
-   * BAN30: Remove and Ban for 30 days
-   * PERMABAN: Remove and Ban forever
-   * REMBAN: Remove and Ban forever and delete all existing comments
-   * REPORT: Automatically report the comment/post
+   * `REMOVE`: Remove the comment/post
+   * `BAN7`: Remove and Ban for 7 days
+   * `BAN30`: Remove and Ban for 30 days
+   * `PERMABAN`: Remove and Ban forever
+   * `REMBAN`: Remove and Ban forever and delete all existing comments
+   * `REPORT`: Automatically report the comment/post
 * description: internal description for the filter to be used by admin collaboration.
+* scope (Optional): You can define the scope for this filter. This can be one of the following
+   * `global`: Will apply to everythign and everyone, regardless of instance or community. This is set by default if scope is not provided
+   * `instance`: This filter will only apply to instance-local communities
+   * `community::<community_name>`: Replace `<community_name>` with the community for which you want this filter to apply. **Note**: This only applies to instance-local communities because that's where the bot is expected to have admin rights by default.
 
 Also important, the initial format has to be somewhat consistent
 * The PM needs to start with `threativore`
