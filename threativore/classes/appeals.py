@@ -156,6 +156,8 @@ class ThreativoreAppeals:
             )
         db.session.add(new_appeal)
         db.session.commit()
+        quoted_appeal_message = '>' + new_appeal.message.replace('\n', '\n>')
+        quoted_matched_content = '>' + filter_match.content.replace('\n', '\n>')
         appeal_msg = (
             f"Threativore appeal has been lodged by {new_appeal.creator_url} "
             f"for action {new_appeal.filter_match_id} caused by regex `{filter_match.filter.regex}`.\n\n"
@@ -168,8 +170,6 @@ class ThreativoreAppeals:
         )
 
         for admin in self.threativore.appeal_admins:
-            quoted_appeal_message = '>' + new_appeal.message.replace('\n', '\n>')
-            quoted_matched_content = '>' + filter_match.content.replace('\n', '\n>')
             admin.pm(content=appeal_msg)
         webhook_parser(appeal_msg)
         self.threativore.reply_to_pm(
