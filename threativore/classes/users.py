@@ -69,7 +69,12 @@ class ThreativoreUsers:
         user_method = user_search.group(1).lower()
         user_url = user_search.group(2).strip().lower()
         if not utils.is_valid_user_url(user_url):
-            user_search = re.search(r"\[.*\]\((https?://.*)\)[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+            user_https_search = re.search(r"\[.*\]\((https?://.*)\)[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+            if not user_https_search:
+                raise e.ReplyException(
+                    f"No valid user URL found in PM: {user_url}\n\n"
+                    "To ensure mod rights are added correctly, please send the user account URL.",
+                )   
             user_url_retry = user_search.group(1).strip().lower()
             if not utils.is_valid_user_url(user_url_retry):
                 raise e.ReplyException(
