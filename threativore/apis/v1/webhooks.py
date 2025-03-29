@@ -32,9 +32,11 @@ class KoFi(Resource):
         user_email = data.get("email").lower()
         user = database.get_user_from_override_email(user_email)
         if not user:
-            actor_id = get_actor_id_from_email(user_email).lower()
+            actor_id = get_actor_id_from_email(user_email)
             if not actor_id:
                 raise e.BadRequest(f"Ko-Fi donation from {user_email} but no user from that email found in our instance.")
+            else:
+                actor_id = actor_id.lower()
             user = threativore.users.ensure_user_exists(actor_id)
         tier = "drinking mate"
         if data.get("is_subscription_payment") and data.get("tier_name"):
