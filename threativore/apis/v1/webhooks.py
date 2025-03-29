@@ -48,8 +48,7 @@ class KoFi(Resource):
             expires=datetime.utcnow() + 
             timedelta(days=Config.donation_expiration_days),
         )
-        logger.info(f"Ko-Fi donation from {data.get('email')} ({user.actor_id}) for {tier} ({data.get('amount')}). Expires at {datetime.utcnow() + 
-            timedelta(days=Config.donation_expiration_days)}.")
+        logger.info(f"Ko-Fi donation from {data.get('email')} ({user.actor_id}) for {tier} ({data.get('amount')}). Expires at {datetime.utcnow() + timedelta(days=Config.donation_expiration_days)}.")
         emoji_markdown = lemmy_emoji.get_emoji_markdown(tier.replace(r' ','_'))
         if data.get("is_first_subscription_payment", False) is True:
             threativore.reply_to_user_url(
