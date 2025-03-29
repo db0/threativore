@@ -231,7 +231,7 @@ class Threativore:
         
 
     def check_comments_page(self, page:int=1, ids_checked_already: list[int] = []):
-        logger.debug(f"Checking Comments page {page}...")
+        # logger.debug(f"Checking Comments page {page}...")
         cm = self.lemmy.comment.list(limit=50,sort=CommentSortType.New, page=page)
         all_ids = [comment["comment"]["id"] for comment in cm if comment["comment"]["id"] not in ids_checked_already]
         seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.COMMENT)
@@ -360,7 +360,7 @@ class Threativore:
             all_ids_checked_this_run += ids_checked
 
     def check_posts_page(self, page:int=1, ids_checked_already: list[int] = []):
-        logger.debug(f"Checking Posts page {page}...")
+        # logger.debug(f"Checking Posts page {page}...")
         cm = self.lemmy.post.list(limit=10,sort=SortType.New, page=page)
         all_ids = [post["post"]["id"] for post in cm if post["post"]["id"] not in ids_checked_already]
         seen_any_previously = database.has_any_entry_been_seen(all_ids, EntityType.POST)
@@ -494,7 +494,7 @@ class Threativore:
         return (seen_any_previously,all_ids)
 
     def check_pms(self):
-        logger.debug("Checking PMs...")
+        # logger.debug("Checking PMs...")
         pms = self.lemmy.private_message.list(
             unread_only=True,
             limit=20,
