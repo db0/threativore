@@ -29,15 +29,19 @@ class KoFi(Resource):
 
         if data.get("verification_token") != Config.kofi_webhook_verification_token:
             raise e.BadRequest("Invalid verification token")
+        
         user_email = data.get("email").lower()
         user = database.get_user_from_override_email(user_email)
+
         if not user:
             actor_id = get_actor_id_from_email(user_email)
             if not actor_id:
                 raise e.BadRequest(f"Ko-Fi donation from {user_email} but no user from that email found in our instance.")
-            else:
-                actor_id = actor_id.lower()
+            actor_id = actor_id.lower()
             user = threativore.users.ensure_user_exists(actor_id)
+        else:
+            actor_id = user.user_url
+
         tier = "drinking mate"
         if data.get("is_subscription_payment") and data.get("tier_name"):
             tier = data.get("tier_name").lower()
@@ -52,7 +56,7 @@ class KoFi(Resource):
         )
         logger.info(f"Ko-Fi donation from {user_email} ({actor_id}) for {tier}. Expires at {datetime.utcnow() + timedelta(days=Config.donation_expiration_days)}.")
         emoji_markdown = lemmy_emoji.get_emoji_markdown(tier.replace(r' ','_'))
-        if data.get("is_first_subscription_payment", False) is True or data.get("is_subscription_payment", False) is False:
+        if data.get("is_first_subscription_payment", False) is True or data.get("is_subscription_payment") is False:
             threativore.reply_to_user_url(
                 user_url=actor_id, 
                 message=(
