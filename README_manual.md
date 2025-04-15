@@ -220,3 +220,44 @@ The flair name can be either the tag set in threativore, or the emoji shortcode 
 ```threativore assign flair jolly_roger: @db0@lemmy.dbzer0.com```
 
 
+
+## Flags
+
+You can assign flags to user to help you keep track about extra information about them between the admins. Currently the current flags are supported: `warning`
+
+### Assign Flags 
+
+You can assign flags via threativore PMs. When you assign a flag, the target user will receive a PM about it from the bot. This allows you to use threativore to PM users without exposing which admin account did it.
+
+The syntax is:
+
+```
+threativore warning flag @<username> (silently)
+reason: `The reason why you are flagging this user`
+user_message: `the message the send to the user about this flag`
+expires: `365`
+```
+
+* <username> should be the username. Don't forget the `@` sign in front
+* `reason`: You should provide a reason why you are flagging this user. Feel free to use URLs or any other records you feel are appropriate.
+* (Optional) `user_message`: If you provide a user message, this will be sent to the user instead of the reason. If you don't provide a `user_message`, the `reason` will be forwarded to the user instead.
+* (Optional) `expires`: The number of **days** after which this flag will expire. If you don't provide this, the flag is permanent.
+* You can optionally append `silently` at the end. When this is set, threativore will will not inform the user at all about their flagging.
+
+
+After you flag someone, the bot will reply back with the count of that type of flag this user has. Depending on the amount of flags you and other admins have assigned, you might want to take further actions on that user.
+
+Example:
+
+```
+threativore warning flag: @random_chud
+reason: `Mainsplaining https://lemmy.dbzer0.com/post/000000000/000000000`
+user_message: `please stop mansplaining`
+```
+
+### List Flags 
+
+You can see all flags assigned to a user by simply PMing threativore like so
+
+```threativore list flags: @random_chud```
+

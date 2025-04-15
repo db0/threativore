@@ -569,6 +569,21 @@ class Threativore:
                     re.IGNORECASE,
                 ):
                     self.users.parse_pm(pm)
+                set_flag_search = re.search(
+                    # (warning) in a group to potentially extend it
+                    r"(warning) flag: @(\S*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if set_flag_search:
+                    self.users.parse_flag_pm(set_flag_search, pm)
+                list_flag_search = re.search(
+                    r"list flags: @(\S*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if list_flag_search:
+                    self.users.list_flag_pm(list_flag_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
