@@ -1,4 +1,5 @@
 import regex as re
+from datetime import datetime, timedelta
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 import threativore.database as database
@@ -308,7 +309,7 @@ class ThreativoreUsers:
                 reply_pm += " They have not been notified."            
             self.threativore.reply_to_pm(
                 pm=pm,
-                message=(reply_pm),
+                message=reply_pm,
             )
             if not is_silent:
                 origin_user = requesting_user.user_url
@@ -316,7 +317,7 @@ class ThreativoreUsers:
                     origin_user = "an admin"
                 self.threativore.reply_to_user_url(
                     user_url=flaired_user.user_url,
-                    message=(f'{origin_user} has removed flair `{requested_flair}`{emoji_markdown} from you.'),
+                    message=f'{origin_user} has removed flair `{requested_flair}`{emoji_markdown} from you.',
                 )
             
         else:
@@ -339,4 +340,103 @@ class ThreativoreUsers:
                     user_url=flaired_user.user_url,
                     message=(f'{origin_user} has assigned flair `{requested_flair}`{emoji_markdown} to you.'),
                 )
+                
+    def parse_flag_pm(self, flag_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        if not requesting_user.can_do_user_operations():
+            raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
+        flag_name = flag_search.group(1).strip().lower()
+        flag_reason_search = re.search(r"reason: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+        if not flag_reason_search:
+            raise e.ReplyException("Please provide a reason for this flag")
+        flag_reason = flag_reason_search.group(1).strip()
+        flag_expiry = None
+        flag_expiry_search = re.search(r"expires: ?`(\d+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+        if flag_expiry_search:
+            flag_expiry = datetime.utcnow() + timedelta(days=int(flag_expiry_search.group(1).strip())) 
+        target_user = flag_search.group(2).strip().lower()
+        is_silent = re.search(
+                    r"silently",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+        )
+        if '@' not in target_user: target_user = f"{target_user}@{Config.lemmy_domain}"
+        try:
+            if self.threativore.lemmy.user.get(username=target_user) is None:
+                raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        except Exception:
+            raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        flagged_user = database.get_user(utils.username_to_url(target_user))
+        if not flagged_user:
+            flagged_user = self.threativore.users.ensure_user_exists(utils.username_to_url(target_user))
+        flagged_user.set_flag(
+            flag=flag_name, 
+            reason=flag_reason,
+            expires=flag_expiry,
+        )        
+        logger.info(
+            f"{requesting_user.user_url} has succesfully flagged {flagged_user.user_url} as {flag_name} with reason: {flag_reason}" 
+        )
+        flags_count = flagged_user.count_flags(flag_name)
+        reply_pm = (
+            f'You have succesfully {flag_name} flagged {flagged_user.user_url}. '
+            f'This user now has a total of {flags_count} {flag_name} flags.')
+        if flag_expiry:
+            reply_pm += f' This flag will expire on {flag_expiry.strftime("%Y-%m-%d UTC")}.'
+        if is_silent: 
+            reply_pm += " They have not been notified."
+        self.threativore.reply_to_pm(pm=pm,message=reply_pm)
+        if not is_silent:
+            user_message = flag_reason
+            user_message_search = re.search(r"user_message: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+            if user_message_search:
+                user_message = user_message_search.group(1).strip()
+            message=(
+                f'Admins have assigned you a {flag_name} with reason: {user_message}\n\n'
+                f'You now have a total of {flags_count} {flag_name} flags\n\n')
+            if flag_expiry:
+                message += f' This flag will expire on {flag_expiry.strftime("%Y-%m-%d UTC")}.'
+            if Config.admin_contact_url:
+                message += f'\n\nYou can contact us about this decision at {Config.admin_contact_url}'
+            self.threativore.reply_to_user_url(
+                user_url=flagged_user.user_url,
+                message=message
+            )
             
+            
+    def list_flag_pm(self, flag_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        if not requesting_user.can_do_user_operations():
+            raise e.ReplyException("Sorry, you do not have enough rights to do a users operation.")
+        target_user = flag_search.group(1).strip().lower()
+        if '@' not in target_user: target_user = f"{target_user}@{Config.lemmy_domain}"
+        try:
+            if self.threativore.lemmy.user.get(username=target_user) is None:
+                raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        except Exception:
+            raise e.ReplyException(f"user `@{target_user}` is not known to this instance. Please check your spelling.")
+        flagged_user = database.get_user(utils.username_to_url(target_user))
+        if not flagged_user:
+            self.threativore.reply_to_pm(pm=pm,message=f"user `@{target_user}` has not received any flags.")
+        found_flags = {}
+        for flag in flagged_user.flags:
+            if not flag.expires or (flag.expires and flag.expires < datetime.utcnow()):
+                if flag.flag not in found_flags:
+                    found_flags[flag.flag] = []
+                found_flags[flag.flag].append(flag.reason)
+        reply_pm = ''
+        for flag_name, reasons in found_flags.items():
+            join_str = '\n* '
+            reply_pm = f"The following flags have been assigned to {flagged_user.user_url}\n\n"
+            reply_pm += f"### {flag_name}: {len(reasons)}\n\n* {join_str.join(reasons)}\n\n"
+        self.threativore.reply_to_pm(pm=pm,message=reply_pm)

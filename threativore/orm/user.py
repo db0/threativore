@@ -55,6 +55,23 @@ class UserTag(db.Model):
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+class UserFlag(db.Model):
+    __tablename__ = "user_flags"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user = db.relationship("User", back_populates="flags")
+    flag = db.Column(db.String(512), nullable=False, index=True)
+    reason = db.Column(db.Text, nullable=False, default='')
+    expires = db.Column(db.DateTime, nullable=True)
+    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 # Define event listener to update 'updated' column before each update
 @event.listens_for(UserTag, "before_update")
 def before_update_user_tag_listener(mapper, connection, target):
@@ -74,6 +91,7 @@ class User(db.Model):
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     tags = db.relationship("UserTag", back_populates="user", cascade="all, delete-orphan")
+    flags = db.relationship("UserFlag", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
     filter_appeals_resolved = db.relationship("FilterAppeal", back_populates="resolver")
     governance_posts = db.relationship("GovernancePost", back_populates="user", cascade="all, delete-orphan")
@@ -186,6 +204,22 @@ class User(db.Model):
             ).first()
         )
 
+    def set_flag(
+            self, 
+            flag: str, 
+            reason: str,
+            expires: datetime | None = None) -> None:
+        assert isinstance(flag, str)
+        flag = flag.lower()
+        new_flag = UserFlag(
+            user_id=self.id,
+            flag=flag,
+            reason=reason,
+            expires=expires,
+        )
+        db.session.add(new_flag)
+        db.session.commit()
+
     def is_moderator(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR)
 
@@ -249,6 +283,9 @@ class User(db.Model):
     def can_create_trust(self) -> bool:
         return self.is_moderator()
 
+    def count_flags(self,flag: str) -> int:
+        return db.session.query(UserFlag).filter_by(user_id=self.id).filter_by(flag=flag).count()
+
 
     def compile_tags_list(self):
         tags = []
@@ -270,6 +307,18 @@ class User(db.Model):
                 "flair": flair,
                 "expires": t.expires,
                 "description": description,
+            })
+        red_flag_count = self.count_flags("warning")
+        if red_flag_count > 0:
+            flair = "red_flag"
+            if red_flag_count > 1:
+                flair = "double_red_flag"
+            tags.append({
+                "tag": "warning_flags",
+                "value": True,
+                "flair": lemmy_emoji.get_emoji_url(flair),
+                "expires": None,
+                "description": Config.flag_descriptions[flair],
             })
         return tags
 

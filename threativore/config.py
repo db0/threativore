@@ -12,7 +12,8 @@ class Config:
     discord_webhook = env("DISCORDWEBHOOK", None)
     slack_webhook = env("SLACKWEBHOOK", None)
     threativore_verbosity: int = env.int("THREATIVORE_VERBOSITY", 0) 
-    threativore_quiet: int = env.int("THREATIVORE_QUIET", 0) 
+    threativore_quiet: int = env.int("THREATIVORE_QUIET", 0)
+    admin_contact_url: str = env.str("ADMIN_CONTACT_URL", None)
     # DB Stuff
     use_sqlite: bool = env.bool("USE_SQLITE", True) 
     sqlite_filename: str = env.str("SQLITE_FILENAME", "threativore.db")
@@ -28,6 +29,7 @@ class Config:
     liberapay_username: str = env("LIBERAPAY_USERNAME", None)
     liberapay_tiers: dict = env.dict("LIBERAPAY_TIERS", None)
     predefined_custom_emoji_flairs: dict = env.dict("PREDEFINED_CUSTOM_EMOJI_FLAIRS", None, subcast_values=str)
+    flag_descriptions: dict = env.dict("FLAG_DESCRIPTIONS", None, subcast_values=str)
     payment_tier_descriptions: dict = env.dict("PAYMENT_TIER_DESCRIPTIONS", None, subcast_values=str)
     predefined_tag_descriptions: dict = env.dict("PREDEFINED_TAG_DESCRIPTIONS", None, subcast_values=str)
     donation_expiration_days: int = env.int("DONATION_EXPIRATION_DAYS", 60)
