@@ -435,6 +435,9 @@ class ThreativoreUsers:
                     found_flags[flag.flag] = []
                 found_flags[flag.flag].append(flag.reason)
         reply_pm = ''
+        if not len(found_flags):
+            self.threativore.reply_to_pm(pm=pm,message=f"user `@{target_user}` has not received any flags.")
+            return
         for flag_name, reasons in found_flags.items():
             join_str = '\n* '
             reply_pm = f"The following flags have been assigned to {flagged_user.user_url}\n\n"
