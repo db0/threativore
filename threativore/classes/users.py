@@ -397,7 +397,7 @@ class ThreativoreUsers:
             if user_message_search:
                 user_message = user_message_search.group(1).strip()
             message=(
-                f'Admins have assigned you a {flag_name} with reason: {user_message}\n\n'
+                f'{Config.lemmy_domain} admins have assigned you a {flag_name} with reason: {user_message}\n\n'
                 f'You now have a total of {flags_count} {flag_name} flags\n\n')
             if flag_expiry:
                 message += f' This flag will expire on {flag_expiry.strftime("%Y-%m-%d UTC")}.'
