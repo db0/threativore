@@ -22,6 +22,7 @@ from threativore.argparser import args
 from threativore.config import Config
 from threativore import utils
 import threading
+from threativore.fediseer import ThreativoreFediseer
 
 from threativore.webhooks import webhook_parser
 
@@ -44,6 +45,10 @@ class Threativore:
         if not args.api_only:
             self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
             self.standard_tasks.start()
+        if Config.enable_fediseer_blocklist_refresh:
+            self.fediseer = ThreativoreFediseer(_base_lemmy, self)
+            logger.init_ok(f"Fediseer Blocklist Synchronization", status="Started")
+            
 
     def ensure_fresh_login(self):
         while True:

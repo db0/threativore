@@ -51,3 +51,15 @@ class Config:
     lemmy_db_database: str = env.str("LEMMY_DB_DATABASE", None)
     # Governance
     governance_community: str = env.str("GOVERNANCE_COMMUNITY", None)
+    # Fediseer
+    enable_fediseer_blocklist_refresh: str = env.str("ENABLE_FEDISEER_BLOCKLIST_REFRESH", False)
+    fediseer_api_key: str = env.str("FEDISEER_API_KEY", None)
+    fediseer_sus_users_per_activity = env.int("FEDISEER_SUS_USERS_PER_ACTIVITY", 20)
+    fediseer_sus_activity_per_user = env.int("FEDISEER_SUS_ACTIVITY_PER_USER", 500)
+    fediseer_adhoc_blocks = env.list("FEDISEER_ADHOC_BLOCKS",[], subcast=str)
+    fediseer_safelist = env.list("FEDISEER_SAFELIST",[], subcast=str)
+    fediseer_trusted_instances = env.list("FEDISEER_TRUSTED_INSTANCES",[], subcast=str)
+    fediseer_filtered_instances = env.list("FEDISEER_FILTERED_INSTANCES",[], subcast=str)
+    fediseer_reason_filters = env.list("FEDISEER_REASON_FILTERS",[], subcast=str)
+    fediseer_min_censures = env.int("FEDISEER_MIN_CENSURES", 1)
+    fediseer_changes_warning_threshold = env.int("FEDISEER_CHANGES_WARNING_THRESHOLD", 10)

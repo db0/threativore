@@ -3,7 +3,6 @@ import os
 
 from loguru import logger
 
-from threativore.main import threativore
 from threativore.flask import APP
 from threativore.argparser import args
 
