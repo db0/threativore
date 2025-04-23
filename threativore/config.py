@@ -59,7 +59,7 @@ class Config:
     fediseer_adhoc_blocks = env.list("FEDISEER_ADHOC_BLOCKS",[], subcast=str)
     fediseer_safelist = env.list("FEDISEER_SAFELIST",[], subcast=str)
     fediseer_trusted_instances = env.list("FEDISEER_TRUSTED_INSTANCES",[], subcast=str)
-    fediseer_filtered_instances = env.list("FEDISEER_FILTERED_INSTANCES",["lemmy.dbzer0.com,lemmings.world,lemmings.world"], subcast=str)
+    fediseer_filtered_instances = env.list("FEDISEER_FILTERED_INSTANCES",["lemmy.dbzer0.com,lemmy.world,lemmings.world"], subcast=str)
     fediseer_reason_filters = env.list("FEDISEER_REASON_FILTERS",["__all_pedos__,__all_bigots__"], subcast=str)
     fediseer_min_censures = env.int("FEDISEER_MIN_CENSURES", 1)
     fediseer_changes_warning_threshold = env.int("FEDISEER_CHANGES_WARNING_THRESHOLD", 10)
