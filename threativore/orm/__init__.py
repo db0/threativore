@@ -3,6 +3,7 @@ from threativore.orm.filters import Filter
 from threativore.orm.governance import GovernancePost
 from threativore.orm.seen import Seen
 from threativore.orm.user import User
+from threativore.orm.keystore import KeyStore
 
 with APP.app_context():
     db.create_all()
@@ -13,4 +14,5 @@ __all__ = [
     "Filter",
     "Seen",
     "GovernancePost",
+    "KeyStore",
 ]

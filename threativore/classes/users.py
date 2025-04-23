@@ -393,9 +393,9 @@ class ThreativoreUsers:
         self.threativore.reply_to_pm(pm=pm,message=reply_pm)
         if not is_silent:
             user_message = flag_reason
-            user_message_search = re.search(r"user_message: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+            user_message_search = re.search(r"user_(message|comment): ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
             if user_message_search:
-                user_message = user_message_search.group(1).strip()
+                user_message = user_message_search.group(2).strip()
             message=(
                 f'{Config.lemmy_domain} admins have assigned you a {flag_name} with reason: {user_message}\n\n'
                 f'You now have a total of {flags_count} {flag_name} flags\n\n')

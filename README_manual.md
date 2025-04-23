@@ -261,3 +261,11 @@ You can see all flags assigned to a user by simply PMing threativore like so
 
 ```threativore list flags: @random_chud```
 
+
+## Fediseer Integration
+
+Threativore can utilize the [Fediseer](https://gui.fediseer.com) to synchronize and maintain your defederation/blocklist of your instance. You can enable this functionality by setting the env var `ENABLE_FEDISEER_BLOCKLIST_REFRESH` to true and optionally modifying the other env vars controlling this functionality.
+
+The Fediseer integration can be very powerful and fine-grained to your specific needs. While the default settings should provide some good protection for your instance based on the effort of other admins, you can tweak them environment variables further to adjust to your own specifications. Please check `.env_template` for documentation.
+
+This Fediseer integration allows you to keep your instance protected from the worst parts of the fediverse through crowdsourcing the efforts of many instance admins. 

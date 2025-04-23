@@ -14,3 +14,4 @@ Flask-Caching
 waitress
 flask_sqlalchemy
 Markdown~=3.4.1
+pythonseer
