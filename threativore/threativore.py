@@ -10,6 +10,7 @@ import threativore.database as database
 import threativore.exceptions as e
 from threativore.classes.filters import ThreativoreFilters
 from threativore.classes.appeals import ThreativoreAppeals
+from threativore.classes.fediseer_actions import ThreativoreFediseerActions
 from threativore.classes.users import ThreativoreUsers
 from threativore.classes.governance import Governance
 from threativore.enums import EntityType, FilterAction, FilterType, UserRoleTypes
@@ -38,6 +39,7 @@ class Threativore:
         self.users = ThreativoreUsers(self)
         self.appeals = ThreativoreAppeals(self)
         self.governance = Governance(self)
+        self.fediseer_actions = ThreativoreFediseerActions(self)
         self.ensure_admin_exists()
         self.ensure_bot_exists()
         self.prepare_appeal_objects()
@@ -589,6 +591,13 @@ class Threativore:
                 )
                 if list_flag_search:
                     self.users.list_flag_pm(list_flag_search, pm)
+                fediseer_blocklist_search = re.search(
+                    r"(approve|reject) pending blocklist",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if fediseer_blocklist_search:
+                    self.fediseer_actions.parse_blocklist_pm(fediseer_blocklist_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,

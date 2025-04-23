@@ -7,6 +7,8 @@ from loguru import logger
 from pythonseer import Fediseer
 from threativore.orm.keystore import KeyStore
 from threativore.flask import APP, db
+from threativore.webhooks import webhook_parser
+from datetime import datetime, timedelta
 
 
 class ThreativoreFediseer:
@@ -21,14 +23,14 @@ class ThreativoreFediseer:
         self.standard_tasks.start()
 
     def standard_tasks(self):
-      with APP.app_context():        
-        while True:
-            try:
-                self.refresh_blocklist()
-                time.sleep(600)
-            except Exception as err:
-                logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
-                time.sleep(600)
+        with APP.app_context():        
+            while True:
+                try:
+                    self.refresh_blocklist()
+                    time.sleep(600)
+                except Exception as err:
+                    logger.warning(f"Exception during loop: {err}. Will continue after sleep...")
+                    time.sleep(600)
 
     def refresh_blocklist(self):
         if KeyStore.get_validating_blocklist():
@@ -77,7 +79,7 @@ class ThreativoreFediseer:
         # Load previous blocklist
         prev_defed =  KeyStore.get_previous_blocklist()
         if not prev_defed:
-            logger.warning("Previous defed file doesn't exist. Will probably receive a warning about blocklist.")
+            logger.warning("Previous defed entry doesn't exist. Will probably receive a warning about blocklist changes size.")
             prev_defed = set()
 
         # Log changes
@@ -107,31 +109,70 @@ class ThreativoreFediseer:
               "else reply `threativore reject pending blocklist`"
             )
             self.threativore.reply_to_user_url(Config.threativore_admin_url, message)
+            KeyStore.set_keyvalue(
+                key = 'validating_blocklist', 
+                value = list(defed),
+                expires = datetime.utcnow() + timedelta(days=2)
+            )
             return
+        self.apply_blocklist(defed)
 
+    def apply_blocklist(self, blocklist):
+        # Update blocklist
+        logger.info("Editing defederation list...")
         # Retrieve site info for application question
         site = self.lemmy.site.get()
         # I need to retrieve the site info because it seems if "RequireApplication" is set
         # We need to always re-set the application_question. 
         # So we retrieve it from the existing site, to set the same value        
         application_question = None
+        prev_defed =  KeyStore.get_previous_blocklist()
+        if not prev_defed:
+            prev_defed = set()
+        new_blocks = blocklist - prev_defed
+        removed_blocks = prev_defed - blocklist
         if site["site_view"]["local_site"]["registration_mode"] == "RequireApplication":
             application_question = site["site_view"]["local_site"]["application_question"]
 
-        # Update blocklist
-        logger.info("Editing defederation list...")
-        # if application_question:
-        #     ret = self.lemmy.site.edit(
-        #         blocked_instances=list(defed),
-        #         application_question=application_question,
-        #     )
-        # else:
-        #     ret = self.lemmy.site.edit(
-        #         blocked_instances=list(defed),
-        #     )
+        if application_question:
+            ret = self.lemmy.site.edit(
+                blocked_instances=list(blocklist),
+                application_question=application_question,
+            )
+        else:
+            ret = self.lemmy.site.edit(
+                blocked_instances=list(blocklist),
+            )
 
-        # if ret is None:
-        #     logger.error("Blocklist update failed!")
-        # else:
-        #     logger.info("Blocklist update successful.")
-        #     KeyStore.set_keyvalue('previous_blocklist', json.dumps(list(defed)))
+        if ret is None:
+            logger.error("Blocklist update failed!")
+        else:
+            logger.info(f"Defederation list updated. Entries added: {new_blocks}. Entries removed: {removed_blocks}.")
+        new_blocks_list = "\n".join(f"- {block}" for block in new_blocks)
+        removed_blocks_list = "\n".join(f"- {block}" for block in removed_blocks)
+        message = (
+            "Instance blocklist synchronized with Fediseer:\n\n"
+            f"**New blocks:**\n\n{new_blocks_list}\n\n"
+            f"**Removed blocks:**\n\n{removed_blocks_list}"
+        )
+        KeyStore.delete_key('validating_blocklist')
+        KeyStore.set_keyvalue('previous_blocklist', list(blocklist))
+        webhook_parser(message)
+        self.threativore.reply_to_user_url(Config.threativore_admin_url, message)        
+
+    def reject_blocklist(self, blocklist):
+        prev_defed =  KeyStore.get_previous_blocklist()
+        if not prev_defed:
+            prev_defed = set()
+        new_blocks = blocklist - prev_defed
+        removed_blocks = prev_defed - blocklist
+        new_blocks_list = "\n".join(f"- {block}" for block in new_blocks)
+        removed_blocks_list = "\n".join(f"- {block}" for block in removed_blocks)
+        message = (
+            "**Rejected** instance blocklist from Fediseer:\n\n"
+            f"**Proposed new blocks:**\n\n{new_blocks_list}\n\n"
+            f"**Proposed removed blocks:**\n\n{removed_blocks_list}"
+        )
+        KeyStore.delete_key('validating_blocklist')
+        webhook_parser(message)
+        self.threativore.reply_to_user_url(Config.threativore_admin_url, message)
