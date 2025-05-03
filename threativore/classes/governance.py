@@ -388,6 +388,9 @@ class Governance:
     def update_admins(self):
         site_admins = set()
         site_info = self.threativore.lemmy.site.get()
+        if not site_info:
+            logger.warning("Could not get site info. Skipping admin update.")
+            return
         for admin in site_info["admins"]:
             site_admins.add(admin["person"]["actor_id"].lower())
         self.site_admins = site_admins
