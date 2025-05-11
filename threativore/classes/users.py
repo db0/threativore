@@ -321,6 +321,8 @@ class ThreativoreUsers:
                 )
             
         else:
+            if flair_tag is None:
+                raise e.ReplyException(f"Sorry but `{requested_flair}` is not a valid flair.")
             flaired_user.set_tag(
                 tag=flair_tag, 
                 value='true',
