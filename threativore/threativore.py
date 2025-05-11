@@ -564,7 +564,7 @@ class Threativore:
                 if set_vouch_search:
                     self.users.parse_vouch_pm(set_vouch_search, pm)
                 set_flair_search = re.search(
-                    r"(assign|remove) flair ([a-z_]+):? ?@(\S*)",
+                    r"(assign|remove) flair ([a-z_-]+):? ?@(\S*)",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 )
