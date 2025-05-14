@@ -598,6 +598,13 @@ class Threativore:
                 )
                 if fediseer_blocklist_search:
                     self.fediseer_actions.parse_blocklist_pm(fediseer_blocklist_search, pm)
+                invite_search = re.search(
+                    r"(create|cancel) invite",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if invite_search:
+                    self.users.parse_invite_pm(invite_search, pm)
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,

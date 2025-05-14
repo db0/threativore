@@ -63,3 +63,5 @@ class Config:
     fediseer_reason_filters = env.list("FEDISEER_REASON_FILTERS",["__all_pedos__,__all_bigots__"], subcast=str)
     fediseer_min_censures = env.int("FEDISEER_MIN_CENSURES", 1)
     fediseer_changes_warning_threshold = env.int("FEDISEER_CHANGES_WARNING_THRESHOLD", 10)
+    # Invites
+    invites_per_user: int = env.int("INVITES_PER_USER", 3)

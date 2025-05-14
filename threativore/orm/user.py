@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from sqlalchemy import Enum, UniqueConstraint, event
+from sqlalchemy.dialects.postgresql import UUID
 
 import threativore.exceptions as e
 from threativore.enums import UserRoleTypes
@@ -8,6 +9,7 @@ from threativore.flask import db
 from threativore.emoji import lemmy_emoji
 from threativore.config import Config
 from loguru import logger
+uuid_column_type = lambda: UUID(as_uuid=True) if not Config.use_sqlite else db.String(36)  # FIXME # noqa E731
 
 
 class UserRole(db.Model):
@@ -71,9 +73,29 @@ class UserFlag(db.Model):
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-
 # Define event listener to update 'updated' column before each update
 @event.listens_for(UserTag, "before_update")
+def before_update_user_tag_listener(mapper, connection, target):
+    target.updated = datetime.utcnow()
+
+class UserInvite(db.Model):
+    __tablename__ = "user_invites"
+    id = db.Column(uuid_column_type(), primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user = db.relationship("User", back_populates="invites")
+    comment = db.Column(db.Text, nullable=True)
+    expires = db.Column(db.DateTime, nullable=True)
+    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    invited_users = db.relationship("User", back_populates="invited")
+
+# Define event listener to update 'updated' column before each update
+@event.listens_for(UserInvite, "before_update")
 def before_update_user_tag_listener(mapper, connection, target):
     target.updated = datetime.utcnow()
 
@@ -88,10 +110,18 @@ class User(db.Model):
     email_override = db.Column(db.String(1024), unique=True, nullable=True, index=True)
     created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    invited_id = db.Column(
+        uuid_column_type(),
+        db.ForeignKey("user_invites.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    invited = db.relationship("UserInvite", back_populates="invited_users")
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     tags = db.relationship("UserTag", back_populates="user", cascade="all, delete-orphan")
     flags = db.relationship("UserFlag", back_populates="user", cascade="all, delete-orphan")
+    invites = db.relationship("UserInvite", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
     filter_appeals_resolved = db.relationship("FilterAppeal", back_populates="resolver")
     governance_posts = db.relationship("GovernancePost", back_populates="user", cascade="all, delete-orphan")
@@ -333,6 +363,7 @@ class User(db.Model):
         }
         if privilege > 0:
             user_details["override"] = self.email_override
+            user_details["invited_by"] = self.invited.user.user_url if self.invited else None
         return user_details
 
     def get_all_flairs(self):

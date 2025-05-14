@@ -445,3 +445,19 @@ class ThreativoreUsers:
             reply_pm = f"The following flags have been assigned to {flagged_user.user_url}\n\n"
             reply_pm += f"### {flag_name}: {len(reasons)}\n\n* {join_str.join(reasons)}\n\n"
         self.threativore.reply_to_pm(pm=pm,message=reply_pm)
+
+    def parse_invite_pm(self, flag_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        if not requesting_user.is_known():
+            raise e.ReplyException("Sorry, you do not have enough rights to create invites.")
+        invite_operation = flag_search.group(1).strip().lower()
+        invite_expiry = re.search(r"expires: ?`(\d+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+        if invite_operation == "create":
+            if database.count_user_invites(requesting_user.id) >= Config.invites_per_user:
+                raise e.ReplyException(f"Sorry you have exceeded the maximum allowed invites per user ({Config.invites_per_user}). You cannot create more invites.")
+        # TODO: Rest

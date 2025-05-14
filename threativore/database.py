@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from threativore.enums import EntityType, FilterType, UserRoleTypes
 from threativore.orm.filters import Filter, FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
-from threativore.orm.user import User, UserRole, UserTag
+from threativore.orm.user import User, UserRole, UserTag, UserInvite
 from threativore.orm.governance import GovernancePost, GovernancePostComment
 from threativore.flask import db
 from threativore.enums import GovernancePostType
@@ -104,6 +104,12 @@ def delete_seen_rows(days_older_than:int=7):
 def count_user_vouches(user_id: int):
     return UserTag.query.join(User).filter(
         UserTag.tag == "vouched",
+        User.id == user_id
+    ).count()
+
+def count_user_invites(user_id: int):
+    return UserInvite.query.join(User).filter(
+        UserInvite.expires > datetime.utcnow(),
         User.id == user_id
     ).count()
 
