@@ -630,6 +630,17 @@ class Threativore:
         logger.debug(f"Deleting {rows_deleted} Seen rows")
         db.session.commit()
 
+    def check_applications(self):
+        new_applications = self.lemmy.get_registration_applications(limit=50)
+        for regapp in new_applications:
+            if regapp.get_application_status() != "pending":
+                continue
+            for deny_word in Config.application_deny_list:
+                if deny_word.lower() in regapp.answer.lower():
+                    logger.info(f"Application from {regapp.creator.actor_id} denied due to deny word: {deny_word}")
+                    deny_message = Config.application_deny_reason.format(deny_word=deny_word,appeal_url=Config.admin_contact_url)
+                    regapp.reject(deny_message)
+
     def standard_tasks(self):
         with APP.app_context():
             while True:
@@ -638,6 +649,7 @@ class Threativore:
                     self.check_posts()
                     self.check_comments()
                     self.resolve_reports()
+                    self.check_applications()
                     self.gc()
                     time.sleep(5)
                 except Exception as err:

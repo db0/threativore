@@ -44,6 +44,8 @@ class Config:
     admin_emoji: str = env.str("ADMIN_EMOJI", None)
     voting_flair_priority: dict = env.dict("VOTING_FLAIR_PRIORITY", None, subcast_values=int)
     non_voting_flair_priority: dict = env.dict("NON_VOTING_FLAIR_PRIORITY", None, subcast_values=int)
+    application_deny_list: list[str] = env.list("APPLICATION_DENY_LIST", [], subcast=str)
+    application_deny_reason: str = env.str("APPLICATION_DENY_REASON", None)
     # For use with the connection to the lemmy DB directly
     lemmy_db_host: str = env.str("LEMMY_DB_HOST", None)
     lemmy_db_username: str = env.str("LEMMY_DB_USERNAME", None)
