@@ -635,11 +635,19 @@ class Threativore:
         for regapp in new_applications:
             if regapp.get_application_status() != "pending":
                 continue
+            if Config.application_deny_min_length and len(regapp.answer) < Config.application_deny_min_length:
+                deny_reason = f"the application answer being too short, minimum length is {Config.application_deny_min_length} characters."
+                logger.info(f"Application from {regapp.creator.actor_id} denied due to insufficient length")
+                deny_message = Config.application_deny_reason.format(deny_reason=deny_reason,appeal_url=Config.admin_contact_url)
+                regapp.reject(deny_message)
+                continue
             for deny_word in Config.application_deny_list:
                 if deny_word.lower() in regapp.answer.lower():
+                    deny_reason = f"the prohibited word '{deny_word}' found in your application."
                     logger.info(f"Application from {regapp.creator.actor_id} denied due to deny word: {deny_word}")
-                    deny_message = Config.application_deny_reason.format(deny_word=deny_word,appeal_url=Config.admin_contact_url)
+                    deny_message = Config.application_deny_reason.format(deny_reason=deny_reason,appeal_url=Config.admin_contact_url)
                     regapp.reject(deny_message)
+                    break
 
     def standard_tasks(self):
         with APP.app_context():
