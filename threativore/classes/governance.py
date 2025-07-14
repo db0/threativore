@@ -115,7 +115,8 @@ class Governance:
                 content = content
             )
 
-    def lock_gpost(self, gpost: GovernancePost):
+    def lock_gpost(self, gpost: GovernancePost, modlog_reason: str = "Governance post expired"):
+        # modlog_reason is not yet supported by Lemmy API
         self.threativore.lemmy.post.lock(post_id=gpost.post_id, locked=True)
         gpost.expires = datetime.utcnow()
         db.session.commit()
