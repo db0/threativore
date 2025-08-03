@@ -145,6 +145,8 @@ class Governance:
         more_votes = []
         page = 1 
         while len(more_votes) >= 50 or page == 1:
+            if self.threativore.lemmy.post.list_votes(gpost.post_id, page=page) is None:
+                break        
             more_votes = self.threativore.lemmy.post.list_votes(gpost.post_id, page=page).get("post_likes", [])
             page += 1
             votes += more_votes
