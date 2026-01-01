@@ -141,6 +141,8 @@ class Governance:
     def compile_voting_tallies(self,gpost: GovernancePost) -> str:
         votes = []
         valid_votes: list[dict] = []
+        # We use this for deduplication of confed votes
+        valid_voted_set = set()
         local_non_votes = []
         external_non_votes = []
         more_votes = []
@@ -155,7 +157,14 @@ class Governance:
             voting_user = database.get_user(v["creator"]["actor_id"].lower())
             if self.is_admin(v["creator"]["actor_id"].lower()) and not voting_user:
                 voting_user = self.threativore.users.ensure_user_exists(v["creator"]["actor_id"].lower())
+            # If it's a confed user, this might be a known alias, so we check if we find one
+            if not voting_user and self.is_confed(v["creator"]["actor_id"].lower()):
+                voting_user = database.get_user_from_alias(v["creator"]["actor_id"].lower())
+            # If any alias of this user has already voted, we disregard potential multiple votes.
+            if voting_user in valid_voted_set:
+                continue
             if voting_user and (voting_user.can_vote() or self.is_admin(voting_user.user_url)):
+                valid_voted_set.add(voting_user)
                 valid_votes.append(
                     {
                         "user": voting_user,
@@ -164,7 +173,7 @@ class Governance:
                 )
             elif v["creator"]["local"]:
                 local_non_votes.append(v["score"])
-            elif self.is_confed(v["creator"]["actor_id"]):
+            elif self.is_confed(v["creator"]["actor_id"].lower()):
                 local_non_votes.append(v["score"])
             else:
                 external_non_votes.append(v["score"])
