@@ -44,7 +44,7 @@ class Threativore:
         self.ensure_bot_exists()
         self.prepare_appeal_objects()
         # In order to be able to match the bot account in the DB
-        if not args.api_only:
+        if not args.api_only and not args.test:
             self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
             self.standard_tasks.start()
         if Config.enable_fediseer_blocklist_refresh:
