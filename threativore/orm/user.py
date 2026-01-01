@@ -241,11 +241,14 @@ class User(db.Model):
         db.session.add(new_alias)
         db.session.commit()
 
-    def remove_alias(self, alias_url: str) -> None:
+    def remove_alias(self, alias_url: str) -> bool:
+        """Returns True if alias was found and deleted, else returns false"""
         for alias in aliases:
             if alias.user_url == alias_url:
                 db.session.delete(alias)
                 db.session.commit()
+                return True
+        return False
 
 
     def is_moderator(self) -> bool:
@@ -361,6 +364,7 @@ class User(db.Model):
         }
         if privilege > 0:
             user_details["override"] = self.email_override
+            user_details["aliases"] = [a.user_url for a in self.aliases]
         return user_details
 
     def get_all_flairs(self):

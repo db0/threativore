@@ -9,6 +9,7 @@ from threativore.orm.keystore import KeyStore
 from threativore.flask import APP, db
 from threativore.webhooks import webhook_parser
 from datetime import datetime, timedelta
+from threativore.argparser import args
 
 
 class ThreativoreFediseer:
@@ -19,8 +20,9 @@ class ThreativoreFediseer:
         self.threativore = _threativore
         if Config.fediseer_api_key:
             self.fediseer.log_in(Config.fediseer_api_key)
-        self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
-        self.standard_tasks.start()
+        if not args.api_only and not args.test:            
+            self.standard_tasks = threading.Thread(target=self.standard_tasks, args=(), daemon=True)
+            self.standard_tasks.start()
 
     def standard_tasks(self):
         with APP.app_context():        

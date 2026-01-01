@@ -181,6 +181,50 @@ class ThreativoreUsers:
                 message=(f"Override has been succesfully set to `{requesting_user.email_override}`"),
             )
 
+    def parse_alias_pm(self, alias_search, pm):
+        # logger.info(pm['private_message']['content'])
+        requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
+        if not requesting_user:
+            requesting_user = self.ensure_user_exists(
+                user_url=pm["creator"]["actor_id"].lower(),
+            )
+        alias = alias_search.group(2).strip().lower() if alias_search.group(2).strip().lower() != '' else None
+        if not re.search(r"https://\w+(\.\w+)+/u/.*",alias,re.IGNORECASE):
+            raise e.ReplyException(
+                f"The provided alias `{alias}` is invalid. "
+                "The added alias must be in the form of a user url.\n"
+                "e.g: `https://lemmy.dbzer0.com/u/db0`."
+            )
+        if alias_search.group(1) == 'add':
+            try:
+                requesting_user.add_alias(alias)
+                self.threativore.reply_to_pm(
+                    pm=pm,
+                    message=(f"You have succesfully set alias `{alias}` for yourself"),
+                )
+            except IntegrityError:
+                alias = database.get_user_from_alias(alias)
+                if alias.user.user_url == requesting_user:
+                    raise e.ReplyException(
+                        f"`{alias}` is already set for your account."
+                    )
+                else:
+                    raise e.ReplyException(
+                        f"The alias `{alias}` is already set by a different user."
+                        "Please contact the admins if you think this is an error."
+                    )
+        else:
+            if requesting_user.remove_alias(alias):
+                self.threativore.reply_to_pm(
+                    pm=pm,
+                    message=(f"You have succesfully removed alias `{alias} for yourself."),
+                )
+            else:
+                raise e.ReplyException(
+                    f"The alias `{alias}` was not set for your account."
+                )
+
+
     def parse_vouch_pm(self, vouch_search, pm):
         # logger.info(pm['private_message']['content'])
         requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
