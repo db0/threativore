@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from threativore.enums import EntityType, FilterType, UserRoleTypes
 from threativore.orm.filters import Filter, FilterMatch, FilterAppeal
 from threativore.orm.seen import Seen
-from threativore.orm.user import User, UserRole, UserTag
+from threativore.orm.user import User, UserRole, UserTag, UserAlias
 from threativore.orm.governance import GovernancePost, GovernancePostComment
 from threativore.flask import db
 from threativore.enums import GovernancePostType
@@ -54,6 +54,11 @@ def get_user(user_url: str) -> User | None:
 
 def get_user_from_override_email(user_email: str) -> User | None:
     return User.query.filter_by(email_override=user_email).first()
+
+def get_user_from_alias(user_url: str) -> User | None:
+    alias = UserAlias.query.filter_by(user_url=user_url).first()
+    if alias:
+        return alias.user
 
 def actor_bypasses_filter(user_url: str) -> User:
     return db.session.query(

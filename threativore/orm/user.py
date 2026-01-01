@@ -10,6 +10,21 @@ from threativore.config import Config
 from loguru import logger
 
 
+class UserAlias(db.Model):
+    __tablename__ = "user_aliases"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user = db.relationship("User", back_populates="aliases")
+    user_url = db.Column(db.String(1023), unique=True, nullable=False, index=True)
+    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class UserRole(db.Model):
     __tablename__ = "user_roles"
     __table_args__ = (UniqueConstraint("user_id", "user_role", name="user_id_role"),)
@@ -90,6 +105,7 @@ class User(db.Model):
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     roles = db.relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    aliases = db.relationship("UserAlias", back_populates="user", cascade="all, delete-orphan")
     tags = db.relationship("UserTag", back_populates="user", cascade="all, delete-orphan")
     flags = db.relationship("UserFlag", back_populates="user", cascade="all, delete-orphan")
     filters = db.relationship("Filter", back_populates="user")
@@ -219,6 +235,18 @@ class User(db.Model):
         )
         db.session.add(new_flag)
         db.session.commit()
+
+    def add_alias(self, alias_url: str) -> None:
+        new_alias = UserAlias(user_id = self.id,user_url = alias_url)
+        db.session.add(new_alias)
+        db.session.commit()
+
+    def remove_alias(self, alias_url: str) -> None:
+        for alias in aliases:
+            if alias.user_url == alias_url:
+                db.session.delete(alias)
+                db.session.commit()
+
 
     def is_moderator(self) -> bool:
         return self.has_role(UserRoleTypes.ADMIN) or self.has_role(UserRoleTypes.MODERATOR)

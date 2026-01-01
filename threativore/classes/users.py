@@ -60,6 +60,20 @@ class ThreativoreUsers:
             return
         user.remove_role(role)
 
+    def add_alias(self, user_url: str, alias_url: str):
+        user = database.get_user(user_url)
+        if not user:
+            logger.warning(f"{user_url} doesn't exist")
+            return
+        user.add_alias(alias_url)
+
+    def remove_alias(self, user_url: str, alias_url: str):
+        user = database.get_user(user_url)
+        if not user:
+            logger.warning(f"{user_url} doesn't exist")
+            return
+        user.remove_alias(alias_url)
+
     def parse_user_pm(self, user_search, pm):
         # logger.info(pm['private_message']['content'])
         requesting_user = database.get_user(pm["creator"]["actor_id"].lower())
