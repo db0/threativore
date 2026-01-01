@@ -556,6 +556,13 @@ class Threativore:
                 )
                 if set_override_search:
                     self.users.parse_override_pm(set_override_search, pm)
+                alias_search = re.search(
+                    r"(add|remove) alias:? ?(.*)",
+                    pm["private_message"]["content"],
+                    re.IGNORECASE,
+                )
+                if alias_search:
+                    self.users.parse_alias_pm(alias_search, pm)
                 set_vouch_search = re.search(
                     r"(withdraw )?vouch for:? ?@(\S*)",
                     pm["private_message"]["content"],

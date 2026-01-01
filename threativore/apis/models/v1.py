@@ -20,12 +20,13 @@ class Models:
             'user_url': fields.String(description="The user's URL"),
             'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
-            'override': fields.String(required=False,mdescription="an override for the user account coming from a payment provider. Can be either an email or username."),
+            'aliases': fields.List(fields.String(required=True,description="An alias of the same user in a different instance")),
+            'override': fields.String(required=False,description="an override for the user account coming from a payment provider. Can be either an email or username."),
         })
         self.response_model_model_User_put = api.model('User', {
             'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
             'tags': fields.List(fields.Nested(self.response_model_UserTags)),
-            'override': fields.String(required=False,mdescription="an override for the user account coming from a payment provider. Can be either an email or username."),
+            'override': fields.String(required=False,description="an override for the user account coming from a payment provider. Can be either an email or username."),
         })
         self.response_model_model_User_patch = api.model('User', {
             'roles': fields.List(fields.String(description="The user's roles", enum=[i.name for i in enums.UserRoleTypes])),
