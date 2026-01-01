@@ -196,6 +196,24 @@ People can also leave comments, but they are not used for voting. However to mak
 
 When a thread expires, it will be locked and the final tally will be posted on the "control comment"
 
+
+### Confederation
+
+Threativore supports two or more lemmy/piefed instance confederation, in a way which will consider such instances as "local votes" for governance threads. To specify confederated instances, set the `CONFEDERATED_INSTANCES` env var.
+
+### Aliases
+
+
+Some accounts in confederated instances might have voting rights such as by supporting via liberapay or ko-fi. For such votes to count, the user needs to create a /0 account and then set their alias with the following PM to the threativore bot. 
+
+```threativore add alias: https://<instance.domain>/u/<username>```
+
+Only one person can be assigned each alias and each account can have a maximum of 5 aliases to prevent abuse. One can remove aliases with
+
+```threativore remove alias: https://<instance.domain>/u/<username>```
+
+Any alias that votes on a governance thread - if that user has voting rights - will count the vote as coming from the local user. If both the local user and the alias vave voted in the same governance thread, only one of those votes will be counted (which should avoid mistakes).
+
 ## Adding/Removing flairs
 
 Moderators of threativore can use PMs to the bot to add remove flair from users. The user will be informed of the flair change and who requested it, unless you explicitly specify to hide it (see below)
@@ -218,7 +236,6 @@ The flair name can be either the tag set in threativore, or the emoji shortcode 
 ```threativore assign flair pirate: @db0```
 
 ```threativore assign flair jolly_roger: @db0@lemmy.dbzer0.com```
-
 
 
 ## Flags

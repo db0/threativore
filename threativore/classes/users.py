@@ -189,6 +189,16 @@ class ThreativoreUsers:
                 user_url=pm["creator"]["actor_id"].lower(),
             )
         alias = alias_search.group(2).strip().lower() if alias_search.group(2).strip().lower() != '' else None
+        if Config.lemmy_domain in alias:
+            raise e.ReplyException(
+                f"You cannot set other accounts in this instance as aliases"
+            )
+        existing_aliases = [a.user_url for a in requesting_user.aliases]
+        if len(existing_aliases) > 5:
+            raise e.ReplyException(
+                f"You cannot set other more than 5 aliases. Please delete some aliases first."
+                f"Your current aliases are: {existing_aliases}."
+            )
         if not re.search(r"https://\w+(\.\w+)+/u/.*",alias,re.IGNORECASE):
             raise e.ReplyException(
                 f"The provided alias `{alias}` is invalid. "
