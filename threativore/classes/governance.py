@@ -279,7 +279,7 @@ class Governance:
                     units_remaining = round(units_remaining / 60, 2)
                     tu = "minutes"
             return_string += f"\n\n This vote will complete in {units_remaining} {tu}"
-        return_string += f"\n\n --- \n\n*Reminder that this is a pilot process and results of voting are not set in stone.*"
+        # return_string += f"\n\n --- \n\n*Reminder that this is a pilot process and results of voting are not set in stone.*"
         return return_string
 
     def get_comment_flair(self, comment, show_all_flair: bool, redo_comment_flair: bool = False) -> str | None:
