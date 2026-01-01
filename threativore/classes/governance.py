@@ -27,8 +27,9 @@ class Governance:
         if not self.governance_community_id:
             logger.warning("Governance community not set or not found. Governance module will be inactive")
             return
-        self.governance_tasks = threading.Thread(target=self.governance_tasks, args=(), daemon=True)
-        self.governance_tasks.start()
+        if not args.api_only and not args.test:            
+            self.governance_tasks = threading.Thread(target=self.governance_tasks, args=(), daemon=True)
+            self.governance_tasks.start()
 
     def check_for_new_posts(self):
         logger.debug(f"Checking for new Governance posts")
@@ -162,6 +163,8 @@ class Governance:
                     }
                 )
             elif v["creator"]["local"]:
+                local_non_votes.append(v["score"])
+            elif self.is_confed(v["creator"]["actor_id"]):
                 local_non_votes.append(v["score"])
             else:
                 external_non_votes.append(v["score"])
@@ -385,8 +388,14 @@ class Governance:
             #TODO: Generate an image based on the title
         #TODO: Create thread. Store in DB.
         
-    def is_admin(self, user_url):
+    def is_admin(self, user_url) -> bool:
         return user_url in self.site_admins
+
+    def is_confed(self, user_url) -> bool:
+        for confed_instance in Config.confederated_instances:
+            if confed_instance.lower() in user_url.lower():
+                return True
+        return False
 
     def update_admins(self):
         site_admins = set()

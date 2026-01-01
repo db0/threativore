@@ -54,6 +54,7 @@ class Config:
     lemmy_db_database: str = env.str("LEMMY_DB_DATABASE", None)
     # Governance
     governance_community: str = env.str("GOVERNANCE_COMMUNITY", None)
+    confederated_instances = env.list("CONFEDERATED_INSTANCES",[], subcast=str)
     # Fediseer
     enable_fediseer_blocklist_refresh: str = env.str("ENABLE_FEDISEER_BLOCKLIST_REFRESH", False)
     fediseer_api_key: str = env.str("FEDISEER_API_KEY", None)
