@@ -40,11 +40,17 @@ def get_filter(filter_regex: str, filter_scope: str = 'global') -> Filter:
         scope=filter_scope,
     ).first()
 
-def get_filter_by_id(filter_id: str, filter_scope: str = 'global') -> Filter:
-    return Filter.query.filter_by(
-        id=int(filter_id),
-        scope=filter_scope,
-    ).first()
+def get_filter_by_id(filter_id: str, filter_scope: str | None = None) -> Filter:
+    if filter_scope:
+        return Filter.query.filter_by(
+            id=int(filter_id),
+            scope=filter_scope,
+        ).first()
+    else:
+        return Filter.query.filter_by(
+            id=int(filter_id),
+        ).first()
+
 
 def find_appeal_by_user(creator_id: int, filter_match_id: int) -> FilterAppeal:
     return FilterAppeal.query.filter(

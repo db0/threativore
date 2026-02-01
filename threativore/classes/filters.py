@@ -69,7 +69,7 @@ class ThreativoreFilters:
         reason: str | None = None,
         filter_action: FilterAction | None = None,
         filter_type: FilterType | None = None,
-        filter_scope: str = 'global',
+        filter_scope: str | None = None,
         description: str | None = None,
     ) -> Filter:
         user = database.get_user(user_url)
