@@ -49,13 +49,13 @@ class ThreativoreFilters:
         db.session.commit()
         logger.info(f"{user_url} just added {filter_type.name.lower()} filter '{filter}' with action {filter_action.name}")
 
-    def remove_filter(self, filter: str, user_url: str, filter_scope = 'global'):
+    def remove_filter(self, existing_filter_id: str, user_url: str, filter_scope = 'global'):
         user = database.get_user(user_url)
         if not user:
             raise e.ThreativoreException(f"{user_url} not known")
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to remove filters")
-        existing_filter = database.get_filter(filter_regex=filter, filter_scope=filter_scope)
+        existing_filter = database.get_filter_by_id(filter_id=existing_filter_id, filter_scope=filter_scope)
         if not existing_filter:
             return
         db.session.delete(existing_filter)
@@ -63,7 +63,7 @@ class ThreativoreFilters:
 
     def modify_filter(
         self,
-        existing_filter_regex: str,
+        existing_filter_id: str,
         user_url: str,
         new_filter_regex: str | None = None,
         reason: str | None = None,
@@ -77,9 +77,9 @@ class ThreativoreFilters:
             raise e.ThreativoreException(f"{user_url} not known")
         if not user.can_do_filters():
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to modify filters")
-        existing_filter = database.get_filter(existing_filter_regex, filter_scope=filter_scope)
+        existing_filter = database.get_filter_by_id(existing_filter_id, filter_scope=filter_scope)
         if not existing_filter:
-            raise e.ReplyException(f"filter {existing_filter_regex} does not exist.")
+            raise e.ReplyException(f"filter ID {existing_filter_id} does not exist.")
         if new_filter_regex is not None:
             existing_filter.regex = new_filter_regex
         if reason is not None:
@@ -153,16 +153,18 @@ class ThreativoreFilters:
                     ),
                 )
             if filter_method == "modify":
-                mew_filter_search = re.search(r"new[ _]filter: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
-                mew_filter = None
-                if mew_filter_search:
-                    mew_filter = mew_filter_search.group(1).strip()
+                if not filter_regex.is_digit():
+                    raise e.ReplyException("Filter modify actions require the filter ID")
+                new_filter_search = re.search(r"new[ _]filter: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
+                new_filter = None
+                if new_filter_search:
+                    new_filter = new_filter_search.group(1).strip()
                 filter_reason = None
                 if filter_reason_search:
                     filter_reason = filter_reason_search.group(1).strip()
                 modified_filter = self.modify_filter(
-                    existing_filter_regex=filter_regex,
-                    new_filter_regex=mew_filter,
+                    existing_filter_id=filter_regex,
+                    new_filter_regex=new_filter,
                     user_url=user_url,
                     reason=filter_reason,
                     filter_action=filter_action,
@@ -183,7 +185,9 @@ class ThreativoreFilters:
                     ),
                 )
         if filter_method == "remove":
-            self.remove_filter(filter=filter_regex,user_url=user_url,filter_scope=filter_scope)
+            if not filter_regex.isdigit():
+                    raise e.ReplyException("Filter remove actions require the filter ID")
+            self.remove_filter(existing_filter_id=int(filter_regex),user_url=user_url,filter_scope=filter_scope)
             self.threativore.reply_to_pm(
                 pm=pm,
                 message=(f"Filter has been succesfully remmoved:\n\n\n" "---\n" f"* regex: `{filter_regex}`"),
@@ -194,6 +198,7 @@ class ThreativoreFilters:
             for ffilter in filtered_filters:
                 filters_string += (
                     "\n\n---\n"
+                    f"* id: `{ffilter.id}`\n"
                     f"* regex: `{ffilter.regex}`\n"
                     f"* reason: {ffilter.reason}\n"
                     f"* filter_action: {ffilter.filter_action.name}\n"
@@ -213,7 +218,7 @@ class ThreativoreFilters:
             raise e.ReplyException("Sorry, you do not have enough rights to do a filtering operation.")
         # logger.info(pm['private_message']['content'])
         filter_type = FilterType[filter_search.group(1).upper()]
-        all_filters = [(f.regex) for f in database.get_all_filters(FilterType.COMMENT)]
+        all_filters = [f"{f.id}: {f.regex}" for f in database.get_all_filters(FilterType.COMMENT)]
         if len(all_filters) == 0:
             self.threativore.reply_to_pm(pm=pm, message=f"There are currently no {filter_type.name} defined.")
             return
