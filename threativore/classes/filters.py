@@ -153,7 +153,7 @@ class ThreativoreFilters:
                     ),
                 )
             if filter_method == "modify":
-                if not filter_regex.is_digit():
+                if not filter_regex.isdigit():
                     raise e.ReplyException("Filter modify actions require the filter ID")
                 new_filter_search = re.search(r"new[ _]filter: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
                 new_filter = None
