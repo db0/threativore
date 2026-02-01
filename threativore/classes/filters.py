@@ -49,13 +49,13 @@ class ThreativoreFilters:
         db.session.commit()
         logger.info(f"{user_url} just added {filter_type.name.lower()} filter '{filter}' with action {filter_action.name}")
 
-    def remove_filter(self, existing_filter_id: str, user_url: str, filter_scope = 'global'):
+    def remove_filter(self, existing_filter_id: str, user_url: str, filter_scope | None = None):
         user = database.get_user(user_url)
         if not user:
             raise e.ThreativoreException(f"{user_url} not known")
         if not user.has_role(UserRoleTypes.ADMIN) and not user.has_role(UserRoleTypes.MODERATOR):
             raise e.ThreativoreException(f"{user_url} doesn't have enough privileges to remove filters")
-        existing_filter = database.get_filter_by_id(filter_id=existing_filter_id, filter_scope=filter_scope)
+        existing_filter = database.get_filter_by_id(existing_filter_id, filter_scope=filter_scope)
         if not existing_filter:
             return
         db.session.delete(existing_filter)
@@ -120,10 +120,10 @@ class ThreativoreFilters:
             if filter_action_search:
                 filter_action = FilterAction[filter_action_search.group(1).upper()]
             filter_scope_search = re.search(rf"scope: ?`([^`]+)`", pm["private_message"]["content"], re.IGNORECASE)
-            filter_scope = 'global'
-            if filter_scope_search:
-                filter_scope = filter_scope_search.group(1).lower()
             if filter_method == "add":
+                filter_scope = 'global'
+                if filter_scope_search:
+                    filter_scope = filter_scope_search.group(1).lower()
                 if not filter_reason_search:
                     raise e.ReplyException("New filter needs reason")
                 filter_reason = filter_reason_search.group(1).strip()
@@ -153,6 +153,7 @@ class ThreativoreFilters:
                     ),
                 )
             if filter_method == "modify":
+                filter_scope = None
                 if not filter_regex.isdigit():
                     raise e.ReplyException("Filter modify actions require the filter ID")
                 new_filter_search = re.search(r"new[ _]filter: ?`(.+?)`[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
@@ -185,6 +186,7 @@ class ThreativoreFilters:
                     ),
                 )
         if filter_method == "remove":
+            filter_scope = None
             if not filter_regex.isdigit():
                     raise e.ReplyException("Filter remove actions require the filter ID")
             self.remove_filter(existing_filter_id=int(filter_regex),user_url=user_url,filter_scope=filter_scope)
