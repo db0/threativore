@@ -49,7 +49,7 @@ class ThreativoreFilters:
         db.session.commit()
         logger.info(f"{user_url} just added {filter_type.name.lower()} filter '{filter}' with action {filter_action.name}")
 
-    def remove_filter(self, existing_filter_id: str, user_url: str, filter_scope | None = None):
+    def remove_filter(self, existing_filter_id: str, user_url: str, filter_scope: str | None = None):
         user = database.get_user(user_url)
         if not user:
             raise e.ThreativoreException(f"{user_url} not known")
