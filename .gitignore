@@ -161,6 +161,5 @@ cython_debug/
 
 
 pytooter*
-test*.py
 out*.json
 *.log.bz2
