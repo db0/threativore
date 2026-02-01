@@ -51,24 +51,33 @@ Also important, the initial format has to be somewhat consistent
 
 ### Remove
 
-Similar format like [#Add](#add) but use "remove" instead and you only need the filter type (i.e. "comment") and the regex. I.e.
+Similar format like [#Add](#add) but use "remove" instead and you only need the filter type (i.e. "comment") and the **filter ID**. I.e.
 
 ```markdown
-threativore remove comment filter: `trial period`
+threativore remove comment filter: `2`
 ```
+
 ### Modify
 
-Similar format like [#Add](#add) but use "modify" instead and you only need the filter type (i.e. "comment"), the regex, and then the updated regex, or any other changing fields. Keep in mind that the filter_type here (e.g. "comment") will changed on the filter if it's different
+Similar format like [#Add](#add) but use "modify" instead and you only need the filter type (i.e. "comment"), the **filter ID**, and then the updated regex, or any other changing fields. Keep in mind that the filter_type here (e.g. "comment") will changed on the filter if it's different. 
 
- I.e.
+You can skip any fields which you don't need to modify
 
+#### Examples
 
+Change all the filter fields
 ```
-threativore modify report filter: `trial period`
+threativore modify report filter: `2`
 new filter: `trial run`
 reason: `Spam comment`
 action: `REMOVE`
 description: `Known spam string`
+```
+
+Change a filter from REPORT to REMOVE
+```
+threativore modify report filter: `13`
+action: `REMOVE`
 ```
 
 ### Show
