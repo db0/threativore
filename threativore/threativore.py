@@ -634,7 +634,8 @@ class Threativore:
 
     def gc(self):
         rows_deleted = database.delete_seen_rows(args.gc_days)
-        logger.debug(f"Deleting {rows_deleted} Seen rows")
+        if rows_deleted > 0:
+            logger.debug(f"Deleting {rows_deleted} Seen rows")
         db.session.commit()
 
     def check_applications(self):

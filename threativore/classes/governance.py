@@ -378,6 +378,7 @@ class Governance:
         logger.debug(flair_markdown)
         
     def full_update_single_gpost(self, gpost_id):
+        logger.info(f"Doing a full update of post: {gpost_id}")
         gpost = database.get_gpost(gpost_id)
         self.update_gpost(gpost,redo_all_comment_flair=True)
         

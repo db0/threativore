@@ -19,7 +19,8 @@ else:
     APP.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_size": 50,
         "max_overflow": -1,
-        # "pool_pre_ping": True,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
     }
 APP.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(APP)
