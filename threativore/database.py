@@ -130,6 +130,11 @@ def get_tag(tag: str, user_id: int):
         User.id == user_id,
     ).first()
 
+def get_all_tags(tag: str):
+    return UserTag.query.join(User).filter(
+        UserTag.tag == tag,
+    ).all()
+
 def get_governance_post(post_id: int) -> GovernancePost | None:
     return GovernancePost.query.filter(
         GovernancePost.post_id == post_id,
