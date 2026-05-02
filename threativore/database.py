@@ -118,10 +118,17 @@ def delete_seen_rows(days_older_than:int=7):
     ).delete()
 
 
-def count_user_vouches(user_id: int):
-    return UserTag.query.join(User).filter(
+def count_user_vouches(user_url: str):
+    return UserTag.query.filter(
         UserTag.tag == "vouched",
-        User.id == user_id
+        UserTag.value == user_url
+    ).count()
+
+def count_user_vouches_in_past_month(user_url: str):
+    return UserTag.query.filter(
+        UserTag.tag == "vouched",
+        UserTag.value == user_url,
+        UserTag.created > datetime.utcnow() - timedelta(days=30)
     ).count()
 
 def get_tag(tag: str, user_id: int):

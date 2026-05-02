@@ -262,7 +262,7 @@ class ThreativoreUsers:
                 raise e.ReplyException(f"user @{target_user} is not known to this instance. Please check your spelling and try again or contact the admins.")
         except Exception:
             raise e.ReplyException(f"user @{target_user} is not known to this instance. Please check your spelling and try again or contact the admins.")
-        if not is_withdrawn and not requesting_user.is_moderator() and database.count_user_vouches(requesting_user.id) > Config.vouches_per_user:
+        if not is_withdrawn and not requesting_user.is_moderator() and database.count_user_vouches_in_past_month(requesting_user.user_url) > Config.vouches_per_user:
             raise e.ReplyException(f"Sorry you have exceeded the maximum allowed vouches per user ({Config.vouches_per_user}). You cannot vouch for more users.")
         vouched_user = database.get_user(utils.username_to_url(target_user))
         if is_withdrawn:
