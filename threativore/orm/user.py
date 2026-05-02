@@ -66,7 +66,7 @@ class UserTag(db.Model):
     # A description of this tag. To be used by UIs on mouseovers etc.
     description = db.Column(db.Text, nullable=True)
     expires = db.Column(db.DateTime, nullable=True)
-    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
