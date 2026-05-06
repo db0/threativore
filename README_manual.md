@@ -125,7 +125,7 @@ Note that ADMINS, MODERATORS and TRUSTED users are automatically considered KNOW
 The bot allows you to set new roles via PM. To do so, you need to use this format
 
 ```
-threativore add user: [@db0@lemmy.dbzer0.com](https://lemmy.dbzer0.com/u/db0)
+threativore add user: https://lemmy.dbzer0.com/u/db0
 role: `moderator`
 ```
 
