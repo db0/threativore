@@ -85,7 +85,7 @@ class Governance:
                 )
                 db.session.add(new_gpost)
                 db.session.commit()
-                if not user.can_vote():
+                if not user.can_vote() and not self.is_admin(user_url):
                     self.adjust_control_comment_on_gpost(new_gpost, "This user is not trusted by this instance and therefore cannot initiate new governance posts")
                     self.lock_gpost(new_gpost, "Threativore automatic post removal: Governance post with empty body")
                     self.remove_gpost(new_gpost, "Threativore automatic post removal: Governance post by untrusted user")
