@@ -307,6 +307,9 @@ class Governance:
 
     def update_gpost(self, gpost: GovernancePost, redo_all_comment_flair:bool = False):
         gpost_info = self.threativore.lemmy.post.get(gpost.post_id)
+        if gpost_info.get("post_view") is None:
+            logger.error(f"Governance Post {gpost.post_id} could not be retrieved. Lemmy unreachable? Skipping this loop...")
+            return
         if gpost_info["post_view"]["post"]["removed"] is True:
             return
         if gpost_info["post_view"]["post"]["locked"] is True:
