@@ -515,6 +515,7 @@ class Threativore:
             if "threativore" not in pm["private_message"]["content"].lower():
                 continue
             try:
+                matched_regex = False
                 filter_search = re.search(
                     r"(add|remove|show|modify) (report|comment|url) filter: ?`(.+?)`[ \n]*?",
                     pm["private_message"]["content"],
@@ -522,12 +523,15 @@ class Threativore:
                 )
                 if filter_search:
                     self.filters.parse_filter_pm(filter_search, pm)
+                    matched_regex = True
                 filter_list = re.search(r"list (report|comment) filters", pm["private_message"]["content"], re.IGNORECASE)
                 if filter_list:
                     self.filters.parse_filter_list_pm(filter_list, pm)
+                    matched_regex = True
                 user_search = re.search(r"(add|remove) user: ?(.+)[ \n]*?", pm["private_message"]["content"], re.IGNORECASE)
                 if user_search:
                     self.users.parse_user_pm(user_search, pm)
+                    matched_regex = True
                 request_appeal_search = re.search(
                     r"request appeal:? ?(\d+)",
                     pm["private_message"]["content"],
@@ -535,6 +539,7 @@ class Threativore:
                 )
                 if request_appeal_search:
                     self.appeals.parse_appeal_request(request_appeal_search, pm)
+                    matched_regex = True
                 restore_appeal_search = re.search(
                     r"appeal restore:? ?(\d+)",
                     pm["private_message"]["content"],
@@ -542,6 +547,7 @@ class Threativore:
                 )
                 if restore_appeal_search:
                     self.appeals.parse_appeal_restore(restore_appeal_search, pm)
+                    matched_regex = True
                 reject_appeal_search = re.search(
                     r"appeal (reject|ignore):? ?(\d+)",
                     pm["private_message"]["content"],
@@ -549,6 +555,7 @@ class Threativore:
                 )
                 if reject_appeal_search:
                     self.appeals.parse_appeal_reject(reject_appeal_search, pm)
+                    matched_regex = True
                 set_override_search = re.search(
                     r"set override:? ?(.*)",
                     pm["private_message"]["content"],
@@ -556,6 +563,7 @@ class Threativore:
                 )
                 if set_override_search:
                     self.users.parse_override_pm(set_override_search, pm)
+                    matched_regex = True
                 alias_search = re.search(
                     r"(add|remove) alias:? ?(.*)",
                     pm["private_message"]["content"],
@@ -563,6 +571,7 @@ class Threativore:
                 )
                 if alias_search:
                     self.users.parse_alias_pm(alias_search, pm)
+                    matched_regex = True
                 set_vouch_search = re.search(
                     r"(withdraw )?vouch for:? ?@(\S*)",
                     pm["private_message"]["content"],
@@ -570,6 +579,7 @@ class Threativore:
                 )
                 if set_vouch_search:
                     self.users.parse_vouch_pm(set_vouch_search, pm)
+                    matched_regex = True
                 set_flair_search = re.search(
                     r"(assign|remove) flair ([a-z_-]+):? ?@(\S*)",
                     pm["private_message"]["content"],
@@ -577,12 +587,14 @@ class Threativore:
                 )
                 if set_flair_search:
                     self.users.parse_flair_pm(set_flair_search, pm)
+                    matched_regex = True
                 if re.search(
                     r"governance",
                     pm["private_message"]["content"],
                     re.IGNORECASE,
                 ):
                     self.users.parse_pm(pm)
+                    matched_regex = True
                 set_flag_search = re.search(
                     # (warning) in a group to potentially extend it
                     r"(warning) flag:? @(\S*)",
@@ -591,6 +603,7 @@ class Threativore:
                 )
                 if set_flag_search:
                     self.users.parse_flag_pm(set_flag_search, pm)
+                    matched_regex = True
                 list_flag_search = re.search(
                     r"list flags:? @(\S*)",
                     pm["private_message"]["content"],
@@ -598,6 +611,7 @@ class Threativore:
                 )
                 if list_flag_search:
                     self.users.list_flag_pm(list_flag_search, pm)
+                    matched_regex = True
                 fediseer_blocklist_search = re.search(
                     r"(approve|reject) pending blocklist",
                     pm["private_message"]["content"],
@@ -605,6 +619,9 @@ class Threativore:
                 )
                 if fediseer_blocklist_search:
                     self.fediseer_actions.parse_blocklist_pm(fediseer_blocklist_search, pm)
+                    matched_regex = True
+                if matched_regex is False:
+                    logger.debug(f'PM to threativore didn\'t match any existing regex: {pm["private_message"]["content"]}')
             except e.ReplyException as err:
                 self.reply_to_pm(
                     pm=pm,
