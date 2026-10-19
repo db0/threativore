@@ -2,7 +2,7 @@ pythorhead>=0.34.0
 loguru
 python-dotenv
 SQLAlchemy
-psycopg2-binary
+psycopg[binary]
 werkzeug
 regex
 environs
